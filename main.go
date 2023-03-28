@@ -41,32 +41,10 @@ func main() {
 			apiServer = formatApiServer(apiServer)
 			fmt.Printf("API server: %s\n", apiServer)
 
-			content, err := ioutil.ReadFile(filePath)
+			resourcesMap, err := loadResourcesMap(filePath)
 			if err != nil {
-				fmt.Println("Error reading file:", err)
+				fmt.Println("Failed to load resource file: %w", err)
 				os.Exit(1)
-			}
-
-			resources := strings.Split(string(content), "---")
-
-			fmt.Printf("%d resources found\n\n", len(resources))
-
-			resourcesMap := make(map[string][]string)
-
-			for _, resource := range resources {
-				var crMetadata Base
-				err := yaml.Unmarshal([]byte(resource), &crMetadata)
-				if err != nil {
-					fmt.Println("Error unmarshaling YAML:", err)
-					os.Exit(1)
-				}
-				resourceList := resourcesMap[crMetadata.Kind]
-				if resourceList == nil {
-					resourceList = []string{resource}
-				} else {
-					resourceList = append(resourceList, resource)
-				}
-				resourcesMap[crMetadata.Kind] = resourceList
 			}
 
 			for _, resource := range resourcesMap[_KIND_PRODUCT] {
@@ -83,6 +61,7 @@ func main() {
 					os.Exit(1)
 				}
 			}
+
 			for _, resource := range resourcesMap[_KIND_ENVIRONMENT] {
 				var env Environment
 				err := yaml.Unmarshal([]byte(resource), &env)
@@ -127,6 +106,7 @@ func main() {
 					os.Exit(1)
 				}
 			}
+
 			for _, resource := range resourcesMap[_KIND_DEPLOYMENTRUNTIME] {
 				var dr DeploymentRuntime
 				err := yaml.Unmarshal([]byte(resource), &dr)
@@ -144,9 +124,98 @@ func main() {
 		},
 	}
 
+	var removeCmd = &cobra.Command{
+		Use:   "remove",
+		Short: "Remove resources",
+		Run: func(cmd *cobra.Command, args []string) {
+			apiServer = formatApiServer(apiServer)
+			fmt.Printf("API server: %s\n", apiServer)
+
+			resourcesMap, err := loadResourcesMap(filePath)
+			if err != nil {
+				fmt.Println("Failed to load resource file: %w", err)
+				os.Exit(1)
+			}
+
+			for _, resource := range resourcesMap[_KIND_DEPLOYMENTRUNTIME] {
+				var dr DeploymentRuntime
+				err := yaml.Unmarshal([]byte(resource), &dr)
+				if err != nil {
+					fmt.Println("Error unmarshaling YAML: %w", err)
+					os.Exit(1)
+				}
+
+				err = deleteResource(_KIND_DEPLOYMENTRUNTIME, token, dr, apiServer, _DEPLOYMENTRUNTIME_PATH_TEMPLATE, []string{"Product", "Name"})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
+			for _, resource := range resourcesMap[_KIND_CODEREPO] {
+				var coderepo CodeRepo
+				err := yaml.Unmarshal([]byte(resource), &coderepo)
+				if err != nil {
+					fmt.Println("Error unmarshaling YAML: %w", err)
+					os.Exit(1)
+				}
+
+				err = deleteResource(_KIND_CODEREPO, token, coderepo, apiServer, _CODEREPO_PATH_TEMPLATE, []string{"Product", "Name"})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
+			for _, resource := range resourcesMap[_KIND_PROJECT] {
+				var project Project
+				err := yaml.Unmarshal([]byte(resource), &project)
+				if err != nil {
+					fmt.Println("Error unmarshaling YAML: %w", err)
+					os.Exit(1)
+				}
+
+				err = deleteResource(_KIND_PROJECT, token, project, apiServer, _PROJECT_PATH_TEMPLATE, []string{"Product", "Name"})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
+			for _, resource := range resourcesMap[_KIND_ENVIRONMENT] {
+				var env Environment
+				err := yaml.Unmarshal([]byte(resource), &env)
+				if err != nil {
+					fmt.Println("Error unmarshaling YAML: %w", err)
+					os.Exit(1)
+				}
+
+				err = deleteResource(_KIND_ENVIRONMENT, token, env, apiServer, _ENV_PATH_TEMPLATE, []string{"Product", "Name"})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+
+			for _, resource := range resourcesMap[_KIND_PRODUCT] {
+				var product Product
+				err := yaml.Unmarshal([]byte(resource), &product)
+				if err != nil {
+					fmt.Println("Error unmarshaling YAML: %w", err)
+					os.Exit(1)
+				}
+
+				err = deleteResource(_KIND_PRODUCT, token, product, apiServer, _PRODUCT_PATH_TEMPLATE, []string{"Name"})
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		},
+	}
+
 	applyCmd.Flags().StringVarP(&filePath, "file", "f", "", "Path to the input file (required)")
 	applyCmd.MarkFlagRequired("file")
 	rootCmd.AddCommand(applyCmd)
+
+	removeCmd.Flags().StringVarP(&filePath, "file", "f", "", "Path to the input file (required)")
+	removeCmd.MarkFlagRequired("file")
+	rootCmd.AddCommand(removeCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&token, "token", "t", "", "Authentication token (required)")
 	rootCmd.MarkPersistentFlagRequired("token")
@@ -160,6 +229,51 @@ func main() {
 	}
 }
 
+func loadResourcesMap(filePath string) (map[string][]string, error) {
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading file: %w", err)
+	}
+
+	resources := strings.Split(string(content), "---")
+
+	fmt.Printf("%d resources found\n\n", len(resources))
+
+	resourcesMap := make(map[string][]string)
+
+	for _, resource := range resources {
+		var crMetadata Base
+		err := yaml.Unmarshal([]byte(resource), &crMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("Error unmarshaling YAML: %w", err)
+		}
+		resourceList := resourcesMap[crMetadata.Kind]
+		if resourceList == nil {
+			resourceList = []string{resource}
+		} else {
+			resourceList = append(resourceList, resource)
+		}
+		resourcesMap[crMetadata.Kind] = resourceList
+	}
+
+	return resourcesMap, nil
+}
+
+func deleteResource(kind string, token string, resourceObj interface{},
+	apiServer string, pathTemplate string, pathVarNames []string) error {
+	requestUrl, _, err := buildRequestURLAndBodys(resourceObj, apiServer, pathTemplate, pathVarNames)
+	if err != nil {
+		return err
+	}
+
+	if err := buildAndSendRequest(kind, "DELETE", requestUrl, nil, token); err != nil {
+		return err
+	}
+
+	fmt.Println(fmt.Sprintf("%s deleted successfully.\n", kind))
+	return nil
+}
+
 func saveResource(kind string, token string, resourceObj interface{},
 	apiServer string, pathTemplate string, pathVarNames []string) error {
 	requestUrl, requestBody, err := buildRequestURLAndBodys(resourceObj, apiServer, pathTemplate, pathVarNames)
@@ -167,7 +281,7 @@ func saveResource(kind string, token string, resourceObj interface{},
 		return err
 	}
 
-	if err := saveObject(kind, requestUrl, requestBody, token); err != nil {
+	if err := buildAndSendRequest(kind, "POST", requestUrl, requestBody, token); err != nil {
 		return err
 	}
 
@@ -200,11 +314,7 @@ func buildRequestURLAndBodys(resourceObj interface{},
 	}
 	requestURL := apiServer + buildURLByParameters(pathTemplate, pathVarValues)
 
-	fmt.Printf("Request URL: %s\n", requestURL)
-
 	requestBodyBytes, err := json.Marshal(specValue.Interface())
-
-	fmt.Printf("Request body: %s\n", string(requestBodyBytes))
 
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to marshal JSON: %w", err)
@@ -252,8 +362,19 @@ func getPathVarValues(specObj interface{}, pathVarNames []string) ([]string, err
 	return pathVarValues, nil
 }
 
-func saveObject(kind string, requestURL string, requestBody []byte, token string) error {
-	req, err := http.NewRequest("POST", requestURL, bytes.NewBuffer(requestBody))
+func buildAndSendRequest(kind string, method string, requestURL string, requestBody []byte, token string) error {
+	var req *http.Request
+	var err error
+
+	fmt.Printf("Request[%s] URL: %s\n", method, requestURL)
+
+	if requestBody != nil {
+		fmt.Printf("Request body: %s\n", string(requestBody))
+		req, err = http.NewRequest(method, requestURL, bytes.NewBuffer(requestBody))
+	} else {
+		req, err = http.NewRequest(method, requestURL, http.NoBody)
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error creating request: %w", err)
 	}
