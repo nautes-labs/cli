@@ -1,0 +1,58 @@
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Product
+spec:
+  name: demo-0327
+  git:
+    gitlab:
+      name: demo-0327
+      path: demo-0327
+      visibility: private
+      description: demo-0327
+      parentID: 0
+---
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Environment
+spec:
+  name: env-demo-0327
+  product: demo-0327
+  cluster: test-deployment-runtime
+  envType: dev
+---
+apiVersion: "nautes.resource.nautes.io/v1alpha1"
+kind: Project
+spec:
+  name: project-demo-0327
+  product: demo-0327
+  language: golang
+---
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: CodeRepo
+spec:
+  name: coderepo-demo-0327
+  codeRepoProvider: gitlab
+  deploymentRuntime: true
+  pipelineRuntime: false
+  product: demo-0327
+  project: project-demo-0327
+  webhook:
+    events: ["push_events"]
+    isolation: shared
+  git:
+    gitlab:
+      name: coderepo-demo-0327
+      path: coderepo-demo-0327 
+      visibility: private
+      description: coderepo-demo-0327 
+---
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: DeploymentRuntime
+spec:
+  name: dr-demo-0327
+  destination: env-demo-0327
+  manifestsource:
+    codeRepo: coderepo-demo-0327
+    path: deployments
+    targetRevision: main
+  product: demo-0327
+  projectsRef:
+    - project-demo-0327
