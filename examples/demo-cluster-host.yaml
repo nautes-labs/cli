@@ -1,0 +1,21 @@
+#集群
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Cluster
+spec:
+  # 集群名称
+  name: "cluster-demo-$suffix"
+  # 集群的 API SERVER URL
+  apiServer: "$api-server"
+  # 集群种类：目前只支持 kubernetes
+  clusterKind: "kubernetes"
+  # 集群类型：virtual或physical
+  clusterType: "physical"
+  # 集群用途：host或worker
+  usage: "host"
+  # traefik 配置：物理集群才有此属性
+  traefik:
+    httpNodePort: "30080"
+    httpsNodePort: "30443"
+  # 集群的 kubeconfig 文件内容：物理集群才有此属性
+  kubeconfig: |
+    "$kubeconfig"

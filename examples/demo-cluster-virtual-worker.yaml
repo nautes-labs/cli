@@ -1,0 +1,22 @@
+#集群
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Cluster
+spec:
+  # 集群名称
+  name: "cluster-demo-$suffix"
+  # 集群的 API SERVER URL
+  apiServer: "$api-server"
+  # 集群种类：目前只支持 kubernetes
+  clusterKind: "kubernetes"
+  # 集群类型：virtual或physical
+  clusterType: "virtual"
+  # 集群用途：host或worker
+  usage: "worker"
+  # 所属宿主集群：virtual类型集群才有此属性
+  hostCluster: "$host-cluster"
+  # argocd 域名
+  argocdHost: "argocd.cluster-demo-$suffix.$cluster_ip.nip.io"
+  # 虚拟集群配置：virtual类型集群才有此属性
+  vcluster: 
+    # API SERVER 端口号
+    httpsNodePort: "$api-server-port"

@@ -1,0 +1,81 @@
+# 产品
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Product
+spec:
+  name: demo-$suffix
+  git:
+    gitlab:
+      # 产品名称
+      name: demo-$suffix
+      # 产品路径
+      path: demo-$suffix
+      visibility: private
+      description: demo-$suffix
+      parentID: 0
+---
+# 环境
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Environment
+spec:
+  # 环镜名称
+  name: env-demo-$suffix
+  # 环境所属的产品
+  product: demo-$suffix
+  # 环境关联的集群
+  cluster: $runtime-cluster
+  envType: dev
+---
+# 项目
+apiVersion: "nautes.resource.nautes.io/v1alpha1"
+kind: Project
+spec:
+  # 项目名称
+  name: project-demo-$suffix
+  # 项目所属的产品
+  product: demo-$suffix
+  language: golang
+---
+# 代码库，后续用于存储产品的部署配置清单
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: CodeRepo
+spec:
+  # 代码库名称
+  name: coderepo-demo-$suffix
+  codeRepoProvider: gitlab
+  deploymentRuntime: true
+  pipelineRuntime: false
+  # 代码库所属的产品
+  product: demo-$suffix
+  # 代码库所属的项目
+  project: project-demo-$suffix
+  webhook:
+    events: ["push_events"]
+    isolation: shared
+  git:
+    gitlab:
+      # 代码库名称
+      name: coderepo-demo-$suffix
+      # 代码库路径
+      path: coderepo-demo-$suffix 
+      # 代码库的可见性，例如private、public
+      visibility: private
+      description: coderepo-demo-$suffix 
+---
+# 部署运行时
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: DeploymentRuntime
+spec:
+  # 部署运行时的名称
+  name: dr-demo-$suffix
+  # 部署运行时的目标集群，这里指部署运行时集群
+  destination: env-demo-$suffix
+  manifestsource:
+    # 部署运行时监听的代码库
+    codeRepo: coderepo-demo-$suffix
+    # 部署运行时监听的代码库相对路径
+    path: deployments
+    # 部署运行时监听的代码库版本或代码库分支
+    targetRevision: main
+  product: demo-$suffix
+  projectsRef:
+    - project-demo-$suffix
