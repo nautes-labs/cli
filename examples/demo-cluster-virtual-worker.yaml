@@ -1,10 +1,10 @@
-#集群
+# 虚拟集群属性模板
 apiVersion: nautes.resource.nautes.io/v1alpha1
 kind: Cluster
 spec:
   # 集群名称
-  name: "cluster-demo-$suffix"
-  # 集群的 API SERVER URL
+  name: "vcluster-$suffix"
+  # 集群的 API SERVER URL，使用 https://$hostcluster-ip:$api-server-port 格式替换参数，其中 $hostcluster-ip 指宿主集群的IP，$api-server-port 指虚拟集群的 API Server 端口
   apiServer: "$api-server"
   # 集群种类：目前只支持 kubernetes
   clusterKind: "kubernetes"
@@ -12,9 +12,9 @@ spec:
   clusterType: "virtual"
   # 集群用途：host或worker
   usage: "worker"
-  # 所属宿主集群：virtual类型集群才有此属性
+  # 所属宿主集群：virtual类型集群才有此属性，使用宿主集群的名称替换参数
   hostCluster: "$host-cluster"
-  # argocd 域名
+  # argocd 域名，使用宿主集群的IP替换变量 $cluster_ip
   argocdHost: "argocd.cluster-demo-$suffix.$cluster_ip.nip.io"
   # 虚拟集群配置：virtual类型集群才有此属性
   vcluster: 

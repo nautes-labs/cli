@@ -19,10 +19,11 @@ kind: Environment
 spec:
   # 环镜名称
   name: env-demo-$suffix
-  # 环境所属的产品
+  # 环境的所属产品
   product: demo-$suffix
-  # 环境关联的集群
+  # 环境关联的运行时集群
   cluster: $runtime-cluster
+  # 环境类型
   envType: dev
 ---
 # 项目
@@ -31,11 +32,11 @@ kind: Project
 spec:
   # 项目名称
   name: project-demo-$suffix
-  # 项目所属的产品
+  # 项目的所属产品
   product: demo-$suffix
   language: golang
 ---
-# 代码库，后续用于存储产品的部署配置清单
+# 代码库
 apiVersion: nautes.resource.nautes.io/v1alpha1
 kind: CodeRepo
 spec:
@@ -44,20 +45,20 @@ spec:
   codeRepoProvider: gitlab
   deploymentRuntime: true
   pipelineRuntime: false
-  # 代码库所属的产品
+  # 代码库的所属产品
   product: demo-$suffix
-  # 代码库所属的项目
+  # 代码库的所属项目
   project: project-demo-$suffix
   webhook:
     events: ["push_events"]
     isolation: shared
   git:
     gitlab:
-      # 代码库名称
+      # 代码库的名称
       name: coderepo-demo-$suffix
-      # 代码库路径
+      # 代码库的路径
       path: coderepo-demo-$suffix 
-      # 代码库的可见性，例如private、public
+      # 代码库的可见性，例如：private、public
       visibility: private
       description: coderepo-demo-$suffix 
 ---
@@ -67,15 +68,17 @@ kind: DeploymentRuntime
 spec:
   # 部署运行时的名称
   name: dr-demo-$suffix
-  # 部署运行时的目标集群，这里指部署运行时集群
+  # 承载部署运行时的环境
   destination: env-demo-$suffix
   manifestsource:
     # 部署运行时监听的代码库
     codeRepo: coderepo-demo-$suffix
-    # 部署运行时监听的代码库相对路径
-    path: deployments
+    # 部署运行时监听的代码库的相对路径
+    path: deployments/test
     # 部署运行时监听的代码库版本或代码库分支
     targetRevision: main
+  # 部署运行时的所属产品
   product: demo-$suffix
+  # 部署运行时关联的项目
   projectsRef:
     - project-demo-$suffix
