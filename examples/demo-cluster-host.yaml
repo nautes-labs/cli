@@ -1,10 +1,10 @@
-#集群
+# 宿主集群属性模板
 apiVersion: nautes.resource.nautes.io/v1alpha1
 kind: Cluster
 spec:
   # 集群名称
-  name: "cluster-demo-$suffix"
-  # 集群的 API SERVER URL
+  name: "host-$suffix"
+  # 集群的 API SERVER URL，使用宿主集群的 server 地址替换该变量
   apiServer: "$api-server"
   # 集群种类：目前只支持 kubernetes
   clusterKind: "kubernetes"
@@ -12,10 +12,10 @@ spec:
   clusterType: "physical"
   # 集群用途：host或worker
   usage: "host"
-  # traefik 配置：物理集群才有此属性
+  # traefik 配置
   traefik:
     httpNodePort: "30080"
     httpsNodePort: "30443"
-  # 集群的 kubeconfig 文件内容：物理集群才有此属性
+  # 集群的 kubeconfig 文件内容，使用宿主集群的 kubeconfig 替换该变量
   kubeconfig: |
     "$kubeconfig"
