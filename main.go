@@ -33,10 +33,10 @@ func main() {
 
 	var resourceTypeArr4Save = []reflect.Type{reflect.TypeOf(Cluster{}),
 		reflect.TypeOf(Product{}), reflect.TypeOf(Environment{}), reflect.TypeOf(Project{}),
-		reflect.TypeOf(CodeRepo{}), reflect.TypeOf(CodeRepoBinding{}), reflect.TypeOf(PipelineRuntime{}),
+		reflect.TypeOf(CodeRepo{}), reflect.TypeOf(CodeRepoBinding{}), reflect.TypeOf(ProjectPipelineRuntime{}),
 		reflect.TypeOf(DeploymentRuntime{})}
 
-	var resourceTypeArr4Remove = []reflect.Type{reflect.TypeOf(DeploymentRuntime{}), reflect.TypeOf(PipelineRuntime{}),
+	var resourceTypeArr4Remove = []reflect.Type{reflect.TypeOf(DeploymentRuntime{}), reflect.TypeOf(ProjectPipelineRuntime{}),
 		reflect.TypeOf(CodeRepoBinding{}), reflect.TypeOf(CodeRepo{}), reflect.TypeOf(Project{}), reflect.TypeOf(Environment{}),
 		reflect.TypeOf(Product{}), reflect.TypeOf(Cluster{})}
 

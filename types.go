@@ -20,7 +20,7 @@ const _PROJECT_PATH_TEMPLATE = "/api/v1/products/%s/projects/%s"
 const _CODEREPO_PATH_TEMPLATE = "/api/v1/products/%s/coderepos/%s"
 const _CODEREPO_BINDING_PATH_TEMPLATE = "/api/v1/products/%s/coderepobindings/%s"
 const _DEPLOYMENTRUNTIME_PATH_TEMPLATE = "/api/v1/products/%s/deploymentruntimes/%s"
-const _PIPELINERUNTIME_PATH_TEMPLATE = "/api/v1/products/%s/pipelineruntimes/%s"
+const _PROJECTPIPELINERUNTIME_PATH_TEMPLATE = "/api/v1/products/%s/projectpipelineruntimes/%s"
 const _CLUSTER_PATH_TEMPLATE = "/api/v1/clusters/%s"
 
 type resourceFunc func(apiServer string, token string, resource string, resourceHandler ResourceHandler) error
@@ -114,12 +114,12 @@ type CodeRepo struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `json:"kind"`
 	Spec       struct {
-		Product           string `json:"product"`
-		Name              string `json:"name"`
-		Project           string `json:"project"`
-		DeploymentRuntime bool   `yaml:"deploymentRuntime" json:"deployment_runtime"`
-		PipelineRuntime   bool   `yaml:"pipelineRuntime" json:"pipeline_runtime"`
-		Webhook           struct {
+		Product                string `json:"product"`
+		Name                   string `json:"name"`
+		Project                string `json:"project"`
+		DeploymentRuntime      bool   `yaml:"deploymentRuntime" json:"deployment_runtime"`
+		ProjectPipelineRuntime bool   `yaml:"pipelineRuntime" json:"pipeline_runtime"`
+		Webhook                struct {
 			Events    []string `json:"events"`
 			Isolation string   `json:"isolation"`
 		} `json:"webhook"`
@@ -199,7 +199,7 @@ func (d DeploymentRuntime) getPathVarNames() []string {
 	return []string{"Product", "Name"}
 }
 
-type PipelineRuntime struct {
+type ProjectPipelineRuntime struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `json:"kind"`
 	Spec       struct {
@@ -236,15 +236,15 @@ type PipelineRuntime struct {
 	}
 }
 
-func (p PipelineRuntime) getKind() string {
+func (p ProjectPipelineRuntime) getKind() string {
 	return p.Kind
 }
 
-func (p PipelineRuntime) getPathTemplate() string {
-	return _PIPELINERUNTIME_PATH_TEMPLATE
+func (p ProjectPipelineRuntime) getPathTemplate() string {
+	return _PROJECTPIPELINERUNTIME_PATH_TEMPLATE
 }
 
-func (p PipelineRuntime) getPathVarNames() []string {
+func (p ProjectPipelineRuntime) getPathVarNames() []string {
 	return []string{"Product", "Name"}
 }
 

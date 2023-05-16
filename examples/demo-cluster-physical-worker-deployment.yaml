@@ -14,10 +14,10 @@ spec:
   usage: "worker"
   # 部署运行时
   workerType: "deployment"
-  # 主域名，使用物理集群的 IP 替换变量 $cluster_ip
-  primaryDomain: "$cluster_ip.nip.io"
-  # argocd 域名，使用物理集群的 IP 替换变量 $cluster_ip
-  argocdHost: "argocd.cluster-demo-$suffix.$cluster_ip.nip.io"
+  # 主域名，使用物理集群的 IP 替换变量 $cluster-ip
+  primaryDomain: "$cluster-ip.nip.io"
+  # argocd 域名，使用物理集群的 IP 替换变量 $cluster-ip
+  argocdHost: "argocd.cluster-demo-$suffix.$cluster-ip.nip.io"
   # traefik 配置
   traefik:
     httpNodePort: "30080"

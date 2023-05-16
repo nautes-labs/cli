@@ -14,10 +14,10 @@ spec:
   usage: "worker"
   # 流水线运行时
   workerType: "pipeline"
-  # 主域名，使用物理集群的 IP 替换变量 $cluster_ip
-  primaryDomain: "$cluster_ip.nip.io"
-  # tekton 域名，使用物理集群的 IP 替换变量 $cluster_ip
-  tektonHost: "tekton.cluster-demo-$suffix.$cluster_ip.nip.io"
+  # 主域名，使用物理集群的 IP 替换变量 $cluster-ip
+  primaryDomain: "$cluster-ip.nip.io"
+  # tekton 域名，使用物理集群的 IP 替换变量 $cluster-ip
+  tektonHost: "tekton.host-worker-$suffix.$cluster-ip.nip.io"
   # traefik 配置
   traefik:
     httpNodePort: "30080"

@@ -12,23 +12,6 @@ spec:
   # 环境类型
   envType: dev
 ---
-# 源码库授权给流水线
-apiVersion: nautes.resource.nautes.io/v1alpha1
-kind: CodeRepoBinding
-spec:
-  # 代码库的所属产品
-  productName: demo-$suffix
-  name: coderepobinding-sc-pipeline-demo-$suffix
-  # 被授权的代码库
-  coderepo: coderepo-sc-demo-$suffix
-  # 授权给产品
-  product: demo-$suffix
-  # 授权给项目
-  projects: 
-    - project-demo-$suffix
-  # 授予的权限：readonly, readwrite
-  permissions: readonly
----
 # 部署配置库授权给流水线
 apiVersion: nautes.resource.nautes.io/v1alpha1
 kind: CodeRepoBinding
@@ -48,7 +31,7 @@ spec:
 ---
 # 流水线运行时
 apiVersion: nautes.resource.nautes.io/v1alpha1
-kind: PipelineRuntime
+kind: ProjectPipelineRuntime
 spec:
   # 流水线运行时的名称
   name: pr-demo-$suffix
