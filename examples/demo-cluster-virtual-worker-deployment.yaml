@@ -12,10 +12,14 @@ spec:
   clusterType: "virtual"
   # 集群用途：host或worker
   usage: "worker"
+  # 运行时类型：部署运行时
+  workerType: "deployment"
   # 所属宿主集群：virtual类型集群才有此属性，使用宿主集群的名称替换参数
   hostCluster: "$host-cluster"
-  # argocd 域名，使用宿主集群的IP替换变量 $cluster_ip
-  argocdHost: "argocd.cluster-demo-$suffix.$cluster_ip.nip.io"
+  # 主域名，使用宿主集群的 IP 替换变量 $cluster-ip
+  primaryDomain: "$cluster-ip.nip.io"
+  # argocd 域名，使用宿主集群的 IP 替换变量 $cluster-ip
+  argocdHost: "argocd.vcluster-$suffix.$cluster-ip.nip.io"
   # 虚拟集群配置：virtual类型集群才有此属性
   vcluster: 
     # API SERVER 端口号

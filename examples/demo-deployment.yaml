@@ -1,0 +1,48 @@
+---
+# 测试环境
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Environment
+spec:
+  # 环镜名称
+  name: env-test-demo-$suffix
+  # 环境的所属产品
+  product: demo-$suffix
+  # 环境关联的运行时集群
+  cluster: $deployment-runtime-cluster
+  # 环境类型
+  envType: test
+---
+# 部署配置库授权给部署运行时
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: CodeRepoBinding
+spec:
+  # 代码库的所属产品
+  productName: demo-$suffix
+  name: coderepobinding-deploy-dr-demo-$suffix
+  # 被授权的代码库
+  coderepo: coderepo-deploy-demo-$suffix
+  # 授权给产品
+  product: demo-$suffix
+  # 授予的权限：readonly, readwrite
+  permissions: readonly
+---
+# 部署运行时
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: DeploymentRuntime
+spec:
+  # 部署运行时的名称
+  name: dr-demo-$suffix
+  # 承载部署运行时的环境
+  destination: env-test-demo-$suffix
+  manifestsource:
+    # 部署运行时监听的代码库
+    codeRepo: coderepo-deploy-demo-$suffix
+    # 部署运行时监听的代码库的相对路径
+    path: deployments/test
+    # 部署运行时监听的代码库版本或代码库分支
+    targetRevision: main
+  # 部署运行时的所属产品
+  product: demo-$suffix
+  # 部署运行时关联的项目
+  projectsRef:
+    - project-demo-$suffix

@@ -1,0 +1,28 @@
+# 虚拟集群属性模板
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Cluster
+spec:
+  # 集群名称
+  name: "vcluster-$suffix"
+  # 集群的 API SERVER URL，使用 https://$hostcluster-ip:$api-server-port 格式替换参数，其中 $hostcluster-ip 指宿主集群的IP，$api-server-port 指虚拟集群的 API Server 端口
+  apiServer: "$api-server"
+  # 集群种类：目前只支持 kubernetes
+  clusterKind: "kubernetes"
+  # 集群类型：virtual或physical
+  clusterType: "virtual"
+  # 集群用途：host或worker
+  usage: "worker"
+  # 运行时类型：流水线运行时
+  workerType: "pipeline"
+  # 所属宿主集群：virtual类型集群才有此属性，使用宿主集群的名称替换参数
+  hostCluster: "$host-cluster"
+  # 主域名，使用宿主集群的 IP 替换变量 $cluster-ip
+  primaryDomain: "$cluster-ip.nip.io"
+  # tekton 域名，使用宿主集群的 IP 替换变量 $cluster-ip
+  tektonHost: "tekton.vcluster-$suffix.$cluster-ip.nip.io"
+  # argocd 域名，使用宿主集群的 IP 替换变量 $cluster-ip
+  argocdHost: "argocd.vcluster-$suffix.$cluster-ip.nip.io"
+  # 虚拟集群配置：virtual类型集群才有此属性
+  vcluster: 
+    # API SERVER 端口号
+    httpsNodePort: "$api-server-port"
