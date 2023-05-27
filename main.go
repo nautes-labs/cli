@@ -28,15 +28,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const METHOD_DELETE = "DELETE"
+const METHOD_POST = "POST"
+
 func main() {
 	var filePath, token, apiServer string
+	var skipCheck bool
 
 	var resourceTypeArr4Save = []reflect.Type{reflect.TypeOf(Cluster{}),
 		reflect.TypeOf(Product{}), reflect.TypeOf(Environment{}), reflect.TypeOf(Project{}),
-		reflect.TypeOf(CodeRepo{}), reflect.TypeOf(DeploymentRuntime{})}
+		reflect.TypeOf(CodeRepo{}), reflect.TypeOf(CodeRepoBinding{}), reflect.TypeOf(ProjectPipelineRuntime{}),
+		reflect.TypeOf(DeploymentRuntime{})}
 
-	var resourceTypeArr4Remove = []reflect.Type{reflect.TypeOf(DeploymentRuntime{}),
-		reflect.TypeOf(CodeRepo{}), reflect.TypeOf(Project{}), reflect.TypeOf(Environment{}),
+	var resourceTypeArr4Remove = []reflect.Type{reflect.TypeOf(DeploymentRuntime{}), reflect.TypeOf(ProjectPipelineRuntime{}),
+		reflect.TypeOf(CodeRepoBinding{}), reflect.TypeOf(CodeRepo{}), reflect.TypeOf(Project{}), reflect.TypeOf(Environment{}),
 		reflect.TypeOf(Product{}), reflect.TypeOf(Cluster{})}
 
 	var rootCmd = &cobra.Command{
@@ -47,7 +52,7 @@ func main() {
 		Use:   "apply",
 		Short: "Apply resources",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := execute(apiServer, token, filePath, resourceTypeArr4Save, saveResource); err != nil {
+			if err := execute(apiServer, token, filePath, skipCheck, resourceTypeArr4Save, saveResource); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -58,7 +63,7 @@ func main() {
 		Use:   "remove",
 		Short: "Remove resources",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := execute(apiServer, token, filePath, resourceTypeArr4Remove, deleteResource); err != nil {
+			if err := execute(apiServer, token, filePath, skipCheck, resourceTypeArr4Remove, deleteResource); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -66,10 +71,12 @@ func main() {
 	}
 
 	applyCmd.Flags().StringVarP(&filePath, "file", "f", "", "Path to the input file (required)")
+	applyCmd.Flags().BoolVarP(&skipCheck, "insecure", "i", false, "Skipping the compliance check (optional)")
 	applyCmd.MarkFlagRequired("file")
 	rootCmd.AddCommand(applyCmd)
 
 	removeCmd.Flags().StringVarP(&filePath, "file", "f", "", "Path to the input file (required)")
+	removeCmd.Flags().BoolVarP(&skipCheck, "insecure", "i", false, "Skipping the compliance check (optional)")
 	removeCmd.MarkFlagRequired("file")
 	rootCmd.AddCommand(removeCmd)
 
@@ -85,7 +92,8 @@ func main() {
 	}
 }
 
-func execute(apiServer string, token string, filePath string, resourceTypeArr []reflect.Type, resourceFunc resourceFunc) error {
+func execute(apiServer string, token string, filePath string, skipCheck bool,
+	resourceTypeArr []reflect.Type, resourceFunc resourceFunc) error {
 	apiServer = formatApiServer(apiServer)
 	fmt.Printf("API server: %s\n", apiServer)
 
@@ -94,11 +102,12 @@ func execute(apiServer string, token string, filePath string, resourceTypeArr []
 		return fmt.Errorf("Failed to load resource file: %w", err)
 	}
 
+	// Send requests in the order of the given types.
 	for _, resourceType := range resourceTypeArr {
 		typeName := resourceType.Name()
 		for _, resource := range resourcesMap[typeName] {
 			resourceObj := reflect.New(resourceType).Interface().(ResourceHandler)
-			if err = resourceFunc(apiServer, token, resource, resourceObj); err != nil {
+			if err = resourceFunc(apiServer, token, skipCheck, resource, resourceObj); err != nil {
 				return err
 			}
 		}
@@ -137,36 +146,39 @@ func loadResourcesMap(filePath string) (map[string][]string, error) {
 	return resourcesMap, nil
 }
 
-func deleteResource(apiServer string, token string, resource string, resourceHandler ResourceHandler) error {
-	if err := manageResource("DELETE", apiServer, token, resource, resourceHandler); err != nil {
+func deleteResource(apiServer string, token string, skipCheck bool, resource string, resourceHandler ResourceHandler) error {
+	if err := manageResource(METHOD_DELETE, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
 		return err
 	}
 	fmt.Println(fmt.Sprintf("%s deleted successfully.\n", resourceHandler.getKind()))
 	return nil
 }
 
-func saveResource(apiServer string, token string, resource string, resourceHandler ResourceHandler) error {
-	if err := manageResource("POST", apiServer, token, resource, resourceHandler); err != nil {
+func saveResource(apiServer string, token string, skipCheck bool, resource string, resourceHandler ResourceHandler) error {
+	if err := manageResource(METHOD_POST, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
 		return err
 	}
 	fmt.Println(fmt.Sprintf("%s saved successfully.\n", resourceHandler.getKind()))
 	return nil
 }
 
-func manageResource(method string, apiServer string, token string, resource string, resourceHandler ResourceHandler) error {
+func manageResource(method string, apiServer string, token string, skipCheck bool, resource string, resourceHandler ResourceHandler) error {
 	err := yaml.Unmarshal([]byte(resource), resourceHandler)
 	if err != nil {
 		fmt.Println("Error unmarshaling YAML: %w", err)
 		os.Exit(1)
 	}
 
-	requestUrl, requestBody, err := buildRequestURLAndBodys(apiServer, resourceHandler)
+	requestUrl, requestBody, err := buildRequestURLAndBodys(apiServer, skipCheck, resourceHandler)
 	if err != nil {
 		return err
 	}
 
-	if err := buildAndSendRequest(resourceHandler.getKind(), method, requestUrl, requestBody, token); err != nil {
+	// An exception occurred in the delete request, continue execution.
+	if err := buildAndSendRequest(resourceHandler.getKind(), method, requestUrl, requestBody, token); err != nil && method != METHOD_DELETE {
 		return err
+	} else if err != nil {
+		fmt.Println(err)
 	}
 
 	return nil
@@ -180,7 +192,7 @@ func formatApiServer(apiServer string) string {
 	return apiServer
 }
 
-func buildRequestURLAndBodys(apiServer string, resourceHandler ResourceHandler) (string, []byte, error) {
+func buildRequestURLAndBodys(apiServer string, skipCheck bool, resourceHandler ResourceHandler) (string, []byte, error) {
 	specValue := reflect.ValueOf(resourceHandler).Elem().FieldByName("Spec")
 	pathVarValues, err := getPathVarValues(specValue.Interface(), resourceHandler.getPathVarNames())
 	if err != nil {
@@ -188,6 +200,10 @@ func buildRequestURLAndBodys(apiServer string, resourceHandler ResourceHandler) 
 	}
 
 	requestURL := apiServer + buildURLByParameters(resourceHandler.getPathTemplate(), pathVarValues)
+	if skipCheck {
+		requestURL = fmt.Sprintf("%s?insecure_skip_check=%t", requestURL, skipCheck)
+	}
+
 	requestBodyBytes, err := json.Marshal(specValue.Interface())
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to marshal JSON: %w", err)
@@ -241,7 +257,7 @@ func buildAndSendRequest(kind string, method string, requestURL string, requestB
 
 	fmt.Printf("Request[%s] URL: %s\n", method, requestURL)
 
-	if requestBody != nil && method != "DELETE" {
+	if requestBody != nil && method != METHOD_DELETE {
 		fmt.Printf("Request body: %s\n", string(requestBody))
 		req, err = http.NewRequest(method, requestURL, bytes.NewBuffer(requestBody))
 	} else {
@@ -267,7 +283,7 @@ func buildAndSendRequest(kind string, method string, requestURL string, requestB
 		if err != nil {
 			return fmt.Errorf("failed to read response body: %w", err)
 		}
-		return fmt.Errorf("failed to create %s: status code %d, response body: %s", kind, resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("failed to operate %s: status code %d, response body: %s", kind, resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil

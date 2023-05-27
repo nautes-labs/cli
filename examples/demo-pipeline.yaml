@@ -1,0 +1,74 @@
+---
+# 开发环境
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: Environment
+spec:
+  # 环镜名称
+  name: env-dev-demo-$suffix
+  # 环境的所属产品
+  product: demo-$suffix
+  # 环境关联的运行时集群
+  cluster: $pipeline-runtime-cluster
+  # 环境类型
+  envType: dev
+---
+# 部署配置库授权给流水线
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: CodeRepoBinding
+spec:
+  # 代码库的所属产品
+  productName: demo-$suffix
+  name: coderepobinding-deploy-pipeline-demo-$suffix
+  # 被授权的代码库
+  coderepo: coderepo-deploy-demo-$suffix
+  # 授权给产品
+  product: demo-$suffix
+  # 授权给项目
+  projects: 
+    - project-demo-$suffix
+  # 授予的权限：readonly, readwrite
+  permissions: readwrite
+---
+# 流水线运行时
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: ProjectPipelineRuntime
+spec:
+  # 流水线运行时的名称
+  name: pr-demo-$suffix
+  # 流水线运行时的所属产品
+  product: demo-$suffix
+  # 流水线运行时的所属项目
+  project: project-demo-$suffix
+  # 流水线配置的源码库
+  pipelineSource: coderepo-sc-demo-$suffix
+  # 流水线的定义
+  pipelines:
+    # 流水线名称
+  - name: pipeline-dev-demo-$suffix
+    # 流水线资源的标签
+    label: main
+    # 流水线配置文件的路径
+    path: pipelines/main.yaml
+  # 承载部署运行时的环境
+  destination: env-dev-demo-$suffix
+  # 触发流水线的事件源
+  eventSources:
+    # 事件源名称
+  - name: webhook
+    # gitlab 事件源
+    gitlab:
+      # 代码库名称
+      repoName: coderepo-sc-demo-$suffix
+      # 产生事件的代码库分支，"*"表示该事件源接收所有分支的事件
+      revision: main
+      # 该事件源接收的代码库的事件类型
+      events:
+      - push_events
+  # 流水线相关资源的隔离性定义，shared（默认）或 exclusive
+  isolation: exclusive
+  # 关联流水线和事件源
+  pipelineTriggers:
+    # 关联的事件源
+  - eventSource: webhook
+    # 关联的流水线
+    pipeline: pipeline-dev-demo-$suffix

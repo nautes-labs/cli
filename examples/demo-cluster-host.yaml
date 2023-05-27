@@ -12,10 +12,12 @@ spec:
   clusterType: "physical"
   # 集群用途：host或worker
   usage: "host"
+  # 主域名，使用物理集群的 IP 替换变量 $cluster-ip
+  primaryDomain: "$cluster-ip.nip.io"
   # traefik 配置
   traefik:
     httpNodePort: "30080"
     httpsNodePort: "30443"
   # 集群的 kubeconfig 文件内容，使用宿主集群的 kubeconfig 替换该变量
   kubeconfig: |
-    "$kubeconfig"
+    $kubeconfig

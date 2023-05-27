@@ -18,10 +18,12 @@ const _PRODUCT_PATH_TEMPLATE = "/api/v1/products/%s"
 const _ENV_PATH_TEMPLATE = "/api/v1/products/%s/environments/%s"
 const _PROJECT_PATH_TEMPLATE = "/api/v1/products/%s/projects/%s"
 const _CODEREPO_PATH_TEMPLATE = "/api/v1/products/%s/coderepos/%s"
+const _CODEREPO_BINDING_PATH_TEMPLATE = "/api/v1/products/%s/coderepobindings/%s"
 const _DEPLOYMENTRUNTIME_PATH_TEMPLATE = "/api/v1/products/%s/deploymentruntimes/%s"
+const _PROJECTPIPELINERUNTIME_PATH_TEMPLATE = "/api/v1/products/%s/projectpipelineruntimes/%s"
 const _CLUSTER_PATH_TEMPLATE = "/api/v1/clusters/%s"
 
-type resourceFunc func(apiServer string, token string, resource string, resourceHandler ResourceHandler) error
+type resourceFunc func(apiServer string, token string, skipCheck bool, resource string, resourceHandler ResourceHandler) error
 
 type ResourceHandler interface {
 	getKind() string
@@ -39,8 +41,8 @@ type Product struct {
 	Kind       string `json:"kind"`
 	Spec       struct {
 		Name string `json:"name"`
-		Git  struct {
-			Gitlab struct {
+		Git  *struct {
+			Gitlab *struct {
 				Name        string `json:"name"`
 				Path        string `json:"path"`
 				Visibility  string `json:"visibility"`
@@ -112,17 +114,16 @@ type CodeRepo struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `json:"kind"`
 	Spec       struct {
-		Product           string `json:"product"`
-		Name              string `json:"name"`
-		Project           string `json:"project"`
-		DeploymentRuntime bool   `yaml:"deploymentRuntime" json:"deployment_runtime"`
-		PipelineRuntime   bool   `yaml:"pipelineRuntime" json:"pipeline_runtime"`
-		Webhook           struct {
-			Events    []string `json:"events"`
-			Isolation string   `json:"isolation"`
+		Product                string `json:"product"`
+		Name                   string `json:"name"`
+		Project                string `json:"project"`
+		DeploymentRuntime      bool   `yaml:"deploymentRuntime" json:"deployment_runtime"`
+		ProjectPipelineRuntime bool   `yaml:"pipelineRuntime" json:"pipeline_runtime"`
+		Webhook                *struct {
+			Events *[]string `json:"events"`
 		} `json:"webhook"`
-		Git struct {
-			Gitlab struct {
+		Git *struct {
+			Gitlab *struct {
 				Name        string `json:"name"`
 				Path        string `json:"path"`
 				Visibility  string `json:"visibility"`
@@ -144,15 +145,40 @@ func (c CodeRepo) getPathVarNames() []string {
 	return []string{"Product", "Name"}
 }
 
+type CodeRepoBinding struct {
+	APIVersion string `yaml:"apiVersion" json:"api_version"`
+	Kind       string `json:"kind"`
+	Spec       struct {
+		ProductName string    `yaml:"productName" json:"product_name"`
+		Name        string    `json:"name"`
+		CodeRepo    string    `json:"coderepo"`
+		Product     string    `json:"product"`
+		Projects    *[]string `json:"projects"`
+		Permissions string    `json:"permissions"`
+	} `json:"spec"`
+}
+
+func (c CodeRepoBinding) getKind() string {
+	return c.Kind
+}
+
+func (c CodeRepoBinding) getPathTemplate() string {
+	return _CODEREPO_BINDING_PATH_TEMPLATE
+}
+
+func (c CodeRepoBinding) getPathVarNames() []string {
+	return []string{"ProductName", "Name"}
+}
+
 type DeploymentRuntime struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `json:"kind"`
 	Spec       struct {
-		Name           string   `json:"name"`
-		Product        string   `json:"product"`
-		ProjectsRef    []string `yaml:"projectsRef" json:"projects_ref"`
-		Destination    string   `json:"destination"`
-		Manifestsource struct {
+		Name           string    `json:"name"`
+		Product        string    `json:"product"`
+		ProjectsRef    *[]string `yaml:"projectsRef" json:"projects_ref"`
+		Destination    string    `json:"destination"`
+		Manifestsource *struct {
 			CodeRepo       string `yaml:"codeRepo" json:"code_repo"`
 			TargetRevision string `yaml:"targetRevision" json:"target_revision"`
 			Path           string `json:"path"`
@@ -172,18 +198,70 @@ func (d DeploymentRuntime) getPathVarNames() []string {
 	return []string{"Product", "Name"}
 }
 
+type ProjectPipelineRuntime struct {
+	APIVersion string `yaml:"apiVersion" json:"api_version"`
+	Kind       string `json:"kind"`
+	Spec       struct {
+		Name           string `json:"name"`
+		Product        string `json:"product"`
+		Project        string `json:"project"`
+		PipelineSource string `yaml:"pipelineSource" json:"pipeline_source"`
+		Pipelines      *[]struct {
+			Name  string `json:"name"`
+			Label string `json:"label"`
+			Path  string `json:"path"`
+		} `json:"pipelines"`
+		Destination  string `json:"destination"`
+		EventSources *[]struct {
+			Name   string `json:"name"`
+			Gitlab *struct {
+				RepoName string   `yaml:"repoName" json:"repo_name"`
+				Revision string   `json:"revision"`
+				Events   []string `json:"events"`
+			} `json:"gitlab"`
+			Calendar *struct {
+				Schedule       string   `json:"schedule"`
+				Interval       string   `json:"interval"`
+				ExclusionDates []string `yaml:"exclusionDates" json:"exclusion_dates"`
+				Timezone       string   `json:"timezone"`
+			} `json:"calendar"`
+		} `yaml:"eventSources" json:"event_sources"`
+		Isolation        string `json:"isolation"`
+		PipelineTriggers *[]struct {
+			EventSource string `yaml:"eventSource" json:"event_source"`
+			Pipeline    string `json:"pipeline"`
+			Revision    string `json:"revision"`
+		} `yaml:"pipelineTriggers" json:"pipeline_triggers"`
+	}
+}
+
+func (p ProjectPipelineRuntime) getKind() string {
+	return p.Kind
+}
+
+func (p ProjectPipelineRuntime) getPathTemplate() string {
+	return _PROJECTPIPELINERUNTIME_PATH_TEMPLATE
+}
+
+func (p ProjectPipelineRuntime) getPathVarNames() []string {
+	return []string{"Product", "Name"}
+}
+
 type Cluster struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `yaml:"kind" json:"kind"`
 	Spec       struct {
-		Name        string `yaml:"name" json:"name"`
-		ApiServer   string `yaml:"apiServer" json:"api_server"`
-		ClusterKind string `yaml:"clusterKind" json:"cluster_kind"`
-		ClusterType string `yaml:"clusterType" json:"cluster_type"`
-		Usage       string `yaml:"usage" json:"usage"`
-		HostCluster string `yaml:"hostCluster" json:"host_cluster"`
-		ArgoCDHost  string `yaml:"argocdHost" json:"argocd_host"`
-		Traefik     struct {
+		Name          string `yaml:"name" json:"name"`
+		ApiServer     string `yaml:"apiServer" json:"api_server"`
+		ClusterKind   string `yaml:"clusterKind" json:"cluster_kind"`
+		ClusterType   string `yaml:"clusterType" json:"cluster_type"`
+		Usage         string `yaml:"usage" json:"usage"`
+		WorkerType    string `yaml:"workerType" json:"worker_type"`
+		HostCluster   string `yaml:"hostCluster" json:"host_cluster"`
+		PrimaryDomain string `yaml:"primaryDomain" json:"primary_domain"`
+		TektonHost    string `yaml:"tektonHost" json:"tekton_host"`
+		ArgoCDHost    string `yaml:"argocdHost" json:"argocd_host"`
+		Traefik       struct {
 			HTTPNodePort  string `yaml:"httpNodePort" json:"http_node_port"`
 			HTTPSNodePort string `yaml:"httpsNodePort" json:"https_node_port"`
 		} `yaml:"traefik" json:"traefik"`
