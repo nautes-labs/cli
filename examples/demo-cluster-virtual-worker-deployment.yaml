@@ -24,3 +24,55 @@ spec:
   vcluster: 
     # API SERVER 端口号
     httpsNodePort: "$api-server-port"
+  # componentsList 可选，集群自定义组件
+  componentsList:
+    multiTenant:
+      name: hnc
+      namespace: hnc
+    certMgt:
+      name: cert-manager
+      namespace: cert-manager
+    secretMgt:
+      name: vault
+      namespace: vault
+    secretSync:
+      name: external-secrets
+      namespace: external-secrets
+    ingressController:
+      name: traefik
+      namespace: ingress-traefik
+    deployment:
+      name: argocd
+      namespace: argocd
+    progressiveDelivery:
+      name: argo-rollouts
+      namespace: argo-rollouts
+  # reservedNamespacesAllowedProducts可选，保留命名空间与产品之间的对应关系，使用产品名称替换：$product-name
+  reservedNamespacesAllowedProducts:
+    argocd:
+      - $product-name
+    argo-rollouts:
+      - $product-name
+    dex:
+      - $product-name
+    cert-manager:
+      - $product-name
+    external-secrets:
+      - $product-name
+    hnc-system:
+      - $product-name
+    oauth2-proxy:
+      - $product-name
+    reloader:
+      - $product-name
+    traefik:
+      - $product-name
+    vault:
+      - $product-name
+  # productAllowedClusterResources可选，产品与集群资源的对应关系，使用产品名称替换：$product-name
+  productAllowedClusterResources:
+    $product-name:
+      - kind: ClusterRole
+        group: authorization.k8s.io
+      - kind: ClusterRoleBinding
+        group: authorization.k8s.io

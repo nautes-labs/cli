@@ -174,10 +174,13 @@ type DeploymentRuntime struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
 	Kind       string `json:"kind"`
 	Spec       struct {
-		Name           string    `json:"name"`
-		Product        string    `json:"product"`
-		ProjectsRef    *[]string `yaml:"projectsRef" json:"projects_ref"`
-		Destination    string    `json:"destination"`
+		Name        string    `json:"name"`
+		Product     string    `json:"product"`
+		ProjectsRef *[]string `yaml:"projectsRef" json:"projects_ref"`
+		Destination struct {
+			Environment string   `yaml:"environment" json:"environment"`
+			Namespaces  []string `yaml:"namespaces" json:"namespaces"`
+		} `yaml:"destination" json:"destination"`
 		Manifestsource *struct {
 			CodeRepo       string `yaml:"codeRepo" json:"code_repo"`
 			TargetRevision string `yaml:"targetRevision" json:"target_revision"`
@@ -211,7 +214,7 @@ type ProjectPipelineRuntime struct {
 			Label string `json:"label"`
 			Path  string `json:"path"`
 		} `json:"pipelines"`
-		Destination  string `json:"destination"`
+		Destination  string `yaml:"destination" json:"destination"`
 		EventSources *[]struct {
 			Name   string `json:"name"`
 			Gitlab *struct {
@@ -248,28 +251,72 @@ func (p ProjectPipelineRuntime) getPathVarNames() []string {
 }
 
 type Cluster struct {
-	APIVersion string `yaml:"apiVersion" json:"api_version"`
-	Kind       string `yaml:"kind" json:"kind"`
-	Spec       struct {
-		Name          string `yaml:"name" json:"name"`
-		ApiServer     string `yaml:"apiServer" json:"api_server"`
-		ClusterKind   string `yaml:"clusterKind" json:"cluster_kind"`
-		ClusterType   string `yaml:"clusterType" json:"cluster_type"`
-		Usage         string `yaml:"usage" json:"usage"`
-		WorkerType    string `yaml:"workerType" json:"worker_type"`
-		HostCluster   string `yaml:"hostCluster" json:"host_cluster"`
-		PrimaryDomain string `yaml:"primaryDomain" json:"primary_domain"`
-		TektonHost    string `yaml:"tektonHost" json:"tekton_host"`
-		ArgoCDHost    string `yaml:"argocdHost" json:"argocd_host"`
-		Traefik       struct {
-			HTTPNodePort  string `yaml:"httpNodePort" json:"http_node_port"`
-			HTTPSNodePort string `yaml:"httpsNodePort" json:"https_node_port"`
-		} `yaml:"traefik" json:"traefik"`
-		VCluster struct {
-			HTTPSNodePort string `yaml:"httpsNodePort" json:"https_node_port"`
-		} `yaml:"vcluster" json:"vcluster"`
-		Kubeconfig string `yaml:"kubeconfig" json:"kubeconfig"`
-	} `yaml:"spec" json:"spec"`
+	APIVersion string      `yaml:"apiVersion" json:"api_version"`
+	Kind       string      `yaml:"kind" json:"kind"`
+	Spec       ClusterSpec `yaml:"spec" json:"spec"`
+}
+
+type ClusterSpec struct {
+	Name           string         `yaml:"name" json:"name"`
+	ApiServer      string         `yaml:"apiServer" json:"api_server"`
+	ClusterKind    string         `yaml:"clusterKind" json:"cluster_kind"`
+	ClusterType    string         `yaml:"clusterType" json:"cluster_type"`
+	Usage          string         `yaml:"usage" json:"usage"`
+	WorkerType     string         `yaml:"workerType" json:"worker_type"`
+	HostCluster    string         `yaml:"hostCluster" json:"host_cluster"`
+	PrimaryDomain  string         `yaml:"primaryDomain" json:"primary_domain"`
+	TektonHost     string         `yaml:"tektonHost" json:"tekton_host"`
+	ArgoCDHost     string         `yaml:"argocdHost" json:"argocd_host"`
+	Kubeconfig     string         `yaml:"kubeconfig" json:"kubeconfig"`
+	Traefik        Traefik        `yaml:"traefik" json:"traefik"`
+	VCluster       VCluster       `yaml:"vcluster" json:"vcluster"`
+	ComponentsList ComponentsList `yaml:"componentsList" json:"components_list"`
+	// ReservedNamespacesAllowedProducts key is namespace name, value is the product name list witch can use namespace.
+	ReservedNamespacesAllowedProducts map[string][]string `yaml:"reservedNamespacesAllowedProducts" json:"reserved_namespaces_allowed_products"`
+	// +optional
+	// ReservedNamespacesAllowedProducts key is product name, value is the list of cluster resources.
+	ProductAllowedClusterResources map[string][]ClusterResourceInfo `yaml:"productAllowedClusterResources" json:"product_allowed_cluster_resources"`
+}
+
+type ClusterResourceInfo struct {
+	Kind  string `yaml:"kind" json:"kind"`
+	Group string `yaml:"group" json:"group"`
+}
+
+type Traefik struct {
+	HTTPNodePort  string `yaml:"httpNodePort" json:"http_node_port"`
+	HTTPSNodePort string `yaml:"httpsNodePort" json:"https_node_port"`
+}
+
+type VCluster struct {
+	HTTPSNodePort string `yaml:"httpsNodePort" json:"https_node_port"`
+}
+
+// ComponentsList declares the specific components used by the cluster
+type ComponentsList struct {
+	// +optional
+	CertMgt *Component `yaml:"certMgt" json:"cert_mgt"`
+	// +optional
+	Deployment *Component `yaml:"deployment" json:"deployment"`
+	// +optional
+	EventListener *Component `yaml:"eventListener" json:"event_listener"`
+	// +optional
+	IngressController *Component `yaml:"ingressController" json:"ingress_controller"`
+	// +optional
+	MultiTenant *Component `yaml:"multiTenant" json:"multi_tenant"`
+	// +optional
+	Pipeline *Component `yaml:"pipeline" json:"pipeline"`
+	// +optional
+	ProgressiveDelivery *Component `yaml:"progressiveDelivery" json:"progressive_delivery"`
+	// +optional
+	SecretMgt *Component `yaml:"secretMgt" json:"secret_mgt"`
+	// +optional
+	SecretSync *Component `yaml:"secretSync" json:"secret_sync"`
+}
+
+type Component struct {
+	Name      string `yaml:"name" json:"name"`
+	Namespace string `yaml:"namespace" json:"namespace"`
 }
 
 func (c Cluster) getKind() string {
