@@ -58,19 +58,9 @@ spec:
       - $product-name
     argo-rollouts:
       - $product-name
-    dex:
-      - $product-name
     cert-manager:
       - $product-name
     external-secrets:
-      - $product-name
-    hnc-system:
-      - $product-name
-    oauth2-proxy:
-      - $product-name
-    reloader:
-      - $product-name
-    traefik:
       - $product-name
     vault:
       - $product-name
