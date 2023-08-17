@@ -33,7 +33,10 @@ spec:
   # 部署运行时的名称
   name: dr-demo-$suffix
   # 承载部署运行时的环境
-  destination: env-test-demo-$suffix
+  destination:
+    environment: env-test-demo-$suffix
+    namespaces:
+      - dr-demo-$suffix
   manifestsource:
     # 部署运行时监听的代码库
     codeRepo: coderepo-deploy-demo-$suffix
