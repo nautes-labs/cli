@@ -411,18 +411,40 @@ type ProjectPipelineRuntimeSpec struct {
 		Pipeline    string `yaml:"pipeline"`
 		Revision    string `yaml:"revision"`
 	} `yaml:"pipelineTriggers"`
+	AdditionalResources ProjectPipelineRuntimeAdditionalResources `yaml:"additionalResources"`
 }
 
 type ProjectPipelineRuntimeCommon struct {
 	Name        string `json:"name" column:"name"`
 	Project     string `json:"project" column:"project"`
-	Destination string `json:"destination" column:"destination"`
-	Isolation   string `json:"isolation"`
-	Pipelines   *[]struct {
+	Destination *struct {
+		Environment string `yaml:"environment" json:"environment" column:"environment"`
+		Namespace   string `yaml:"namespace" json:"namespace" column:"namespace" mergeTo:"environment"`
+	} `yaml:"destination" json:"destination"`
+	Isolation string `json:"isolation"`
+	Pipelines *[]struct {
 		Name  string `json:"name"`
 		Label string `json:"label"`
 		Path  string `json:"path"`
 	} `json:"pipelines"`
+	// Optional
+}
+
+// ProjectPipelineRuntimeAdditionalResources defines the additional resources witch runtime needed
+type ProjectPipelineRuntimeAdditionalResources struct {
+	// Optional
+	Git ProjectPipelineRuntimeAdditionalResourcesGit `yaml:"git" json:"git"`
+}
+
+// ProjectPipelineRuntimeAdditionalResourcesGit defines the additional resources if it comes from git
+type ProjectPipelineRuntimeAdditionalResourcesGit struct {
+	// Optional
+	CodeRepo string `yaml:"codeRepo" json:"coderepo"`
+	// Optional
+	// If git repo is a public repo, use url instead
+	URL      string `yaml:"url" json:"url"`
+	Revision string `yaml:"revision" json:"revision"`
+	Path     string `yaml:"path" json:"path"`
 }
 
 type ProjectPipelineRuntimeResponse struct {
@@ -452,6 +474,7 @@ type ProjectPipelineRuntimeResponseItem struct {
 		Pipeline    string `json:"pipeline"`
 		Revision    string `json:"revision"`
 	} `json:"pipeline_triggers"`
+	AdditionalResources ProjectPipelineRuntimeAdditionalResources `json:"additional_resources"`
 }
 
 type ProjectPipelineRuntimeSpecEventSources struct {
