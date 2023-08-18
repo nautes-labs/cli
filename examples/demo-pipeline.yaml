@@ -50,7 +50,15 @@ spec:
     # 流水线配置文件的路径
     path: pipelines/main.yaml
   # 承载部署运行时的环境
-  destination: env-dev-demo-$suffix
+  destination:
+    environment: env-dev-demo-$suffix
+    namespace: pr-demo-$suffix
+  # 可选项，流水线运行时的自定义资源
+  additionalResources:
+    git:
+      codeRepo: coderepo-sc-demo-$suffix
+      revision: main
+      path: /
   # 触发流水线的事件源
   eventSources:
     # 事件源名称
