@@ -26,5 +26,6 @@ testbin/*
 *.swo
 *~
 
+.DS_Store
 cli-local
 nautes*

@@ -16,20 +16,21 @@ package commands
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/nautes-labs/cli/cmd/types"
-	"io/ioutil"
+	"gopkg.in/yaml.v3"
+	"io"
 	"net/http"
 	"os"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"strings"
 )
 
 const (
-	METHOD_GET             = "GET"
-	METHOD_DELETE          = "DELETE"
-	METHOD_POST            = "POST"
+	MethodGet              = "GET"
+	MethodDelete           = "DELETE"
+	MethodPost             = "POST"
 	IgnoreProductOfCluster = "Cluster"
 	IgnoreProductOfProduct = "Product"
 	CodeRepoBinding        = "CodeRepoBinding"
@@ -37,12 +38,12 @@ const (
 
 func Execute(apiServer string, token string, filePath string, skipCheck bool,
 	resourceTypeArr []types.ResourcesType, resourceFunc types.ResourceFunc) error {
-	apiServer = formatApiServer(apiServer)
+	apiServer = formatAPIServer(apiServer)
 	fmt.Printf("API server: %s\n", apiServer)
 
 	resourcesMap, err := loadResourcesMap(filePath)
 	if err != nil {
-		return fmt.Errorf("Failed to load resource file: %w", err)
+		return fmt.Errorf("failed to load resource file: %w", err)
 	}
 
 	// Send requests in the order of the given types.
@@ -60,9 +61,9 @@ func Execute(apiServer string, token string, filePath string, skipCheck bool,
 }
 
 func loadResourcesMap(filePath string) (map[string][]string, error) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading file: %w", err)
+		return nil, fmt.Errorf("error reading file: %w", err)
 	}
 
 	resources := strings.Split(string(content), "---")
@@ -75,7 +76,7 @@ func loadResourcesMap(filePath string) (map[string][]string, error) {
 		var crMetadata types.Base
 		err := yaml.Unmarshal([]byte(resource), &crMetadata)
 		if err != nil {
-			return nil, fmt.Errorf("Error unmarshaling YAML: %w", err)
+			return nil, fmt.Errorf("error unmarshaling YAML: %w", err)
 		}
 		resourceList := resourcesMap[crMetadata.Kind]
 		if resourceList == nil {
@@ -90,26 +91,26 @@ func loadResourcesMap(filePath string) (map[string][]string, error) {
 }
 
 func DeleteResource(apiServer string, token string, skipCheck bool, resource string, resourceHandler types.ResourceHandler) error {
-	if err := manageResource(METHOD_DELETE, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
+	if err := manageResource(MethodDelete, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
 		return err
 	}
-	fmt.Println(fmt.Sprintf("%s deleted successfully.\n", resourceHandler.GetKind()))
+	fmt.Printf("%s deleted successfully.\n", resourceHandler.GetKind())
 	return nil
 }
 
 func SaveResource(apiServer string, token string, skipCheck bool, resource string, resourceHandler types.ResourceHandler) error {
-	if err := manageResource(METHOD_POST, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
+	if err := manageResource(MethodPost, apiServer, token, skipCheck, resource, resourceHandler); err != nil {
 		return err
 	}
-	fmt.Println(fmt.Sprintf("%s saved successfully.\n", resourceHandler.GetKind()))
+	fmt.Printf("%s saved successfully.\n", resourceHandler.GetKind())
 	return nil
 }
 
 func manageResource(method string, apiServer string, token string, skipCheck bool, resource string, resourceHandler types.ResourceHandler) error {
 	err := yaml.Unmarshal([]byte(resource), resourceHandler)
 	if err != nil {
-		fmt.Println("Error unmarshaling YAML: %w", err)
-		os.Exit(1)
+		fmt.Println("error unmarshaling YAML: %w", err)
+		return err
 	}
 	_, err = buildResourceAndDo(method, apiServer, token, skipCheck, resourceHandler)
 	if err != nil {
@@ -120,21 +121,22 @@ func manageResource(method string, apiServer string, token string, skipCheck boo
 }
 
 func buildResourceAndDo(method string, apiServer string, token string, skipCheck bool, resourceHandler types.ResourceHandler) ([]byte, error) {
-	requestUrl, requestBody, err := buildRequestURLAndBodys(apiServer, skipCheck, resourceHandler)
+	requestURL, requestBody, err := buildRequestURLAndBodys(apiServer, resourceHandler)
 	if err != nil {
 		return nil, err
 	}
-
-	// An exception occurred in the delete request, continue execution.
-	if resBytes, err := buildAndSendRequest(resourceHandler.GetKind(), method, requestUrl, requestBody, token); err != nil {
-		return nil, err
-	} else {
-		//fmt.Printf("Response body: %s\n\n", string(resBytes))
-		return resBytes, nil
+	if skipCheck {
+		requestURL = fmt.Sprintf("%s?insecure_skip_check=%t", requestURL, skipCheck)
 	}
+	var resBytes []byte
+	// An exception occurred in the delete request, continue execution.
+	if resBytes, err = buildAndSendRequest(resourceHandler.GetKind(), method, requestURL, requestBody, token); err != nil {
+		return nil, err
+	}
+	return resBytes, nil
 }
 
-func formatApiServer(apiServer string) string {
+func formatAPIServer(apiServer string) string {
 	if strings.HasSuffix(apiServer, "/") {
 		length := len(apiServer)
 		return apiServer[0 : length-1]
@@ -142,18 +144,15 @@ func formatApiServer(apiServer string) string {
 	return apiServer
 }
 
-func buildRequestURLAndBodys(apiServer string, skipCheck bool, resourceHandler types.ResourceHandler) (string, []byte, error) {
+func buildRequestURLAndBodys(apiServer string, resourceHandler types.ResourceHandler) (string, []byte, error) {
 	specValue := reflect.ValueOf(resourceHandler).Elem().FieldByName("Spec")
 	pathVarValues, err := getPathVarValues(specValue.Interface(), resourceHandler.GetPathVarNames())
 	if err != nil {
 		return "", nil, err
 	}
 	requestURL := apiServer + buildURLByParameters(resourceHandler.GetPathTemplate(), pathVarValues)
-	if skipCheck {
-		requestURL = fmt.Sprintf("%s?insecure_skip_check=%t", requestURL, skipCheck)
-	}
 
-	requestBodyBytes, err := jsonIterator.Marshal(JsonSnakeCase{specValue.Interface()})
+	requestBodyBytes, err := json.Marshal(specValue.Interface())
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -161,10 +160,8 @@ func buildRequestURLAndBodys(apiServer string, skipCheck bool, resourceHandler t
 }
 
 func buildURLByParameters(template string, pathVarValues []string) string {
-	if pathVarValues != nil {
-		for _, pathVarValue := range pathVarValues {
-			template = replaceFirstPlaceholder(template, "%s", pathVarValue)
-		}
+	for _, pathVarValue := range pathVarValues {
+		template = replaceFirstPlaceholder(template, "%s", pathVarValue)
 	}
 
 	return template
@@ -191,7 +188,7 @@ func getPathVarValues(specObj interface{}, pathVarNames []string) ([]string, err
 		pathVarValueStr, ok := pathVarValue.Interface().(string)
 
 		if !ok {
-			return nil, fmt.Errorf("Type Assertion Failure: %+v", pathVarValue.Interface())
+			return nil, fmt.Errorf("type Assertion Failure: %+v", pathVarValue.Interface())
 		}
 		pathVarValues = append(pathVarValues, pathVarValueStr)
 	}
@@ -205,7 +202,7 @@ func buildAndSendRequest(kind string, method string, requestURL string, requestB
 
 	fmt.Printf("Request[%s] URL: %s\n", method, requestURL)
 
-	if requestBody != nil && method != METHOD_DELETE {
+	if requestBody != nil && method != MethodDelete {
 		fmt.Printf("Request body: %s\n\n", string(requestBody))
 		req, err = http.NewRequest(method, requestURL, bytes.NewBuffer(requestBody))
 	} else {
@@ -213,7 +210,7 @@ func buildAndSendRequest(kind string, method string, requestURL string, requestB
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("Error creating request: %w", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -222,13 +219,13 @@ func buildAndSendRequest(kind string, method string, requestURL string, requestB
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending request: %w", err)
+		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 
 	defer resp.Body.Close()
 	//eTime := time.Now()
 	//fmt.Printf("sTime: %s\neTime: %s\nsub: %fs\n", sTime, eTime, eTime.Sub(sTime).Seconds())
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}

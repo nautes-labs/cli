@@ -70,3 +70,28 @@ spec:
       # 代码库的可见性，例如：private、public
       visibility: private
       description: coderepo-deploy-demo-$suffix
+---
+# 部署配置库
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: CodeRepo
+spec:
+  # 代码库名称
+  name: coderepo-pipeline-demo-$suffix
+  codeRepoProvider: gitlab
+  deploymentRuntime: false
+  pipelineRuntime: true
+  # 代码库的所属产品
+  product: demo-$suffix
+  # 代码库的所属项目
+  project: project-demo-$suffix
+  webhook:
+    events: ["push_events"]
+  git:
+    gitlab:
+      # 代码库的名称
+      name: coderepo-pipeline-demo-$suffix
+      # 代码库的路径
+      path: coderepo-pipeline-demo-$suffix
+      # 代码库的可见性，例如：private、public
+      visibility: private
+      description: coderepo-pipeline-demo-$suffix
