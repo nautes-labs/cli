@@ -2,7 +2,8 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![golang](https://img.shields.io/badge/golang-v1.20-brightgreen)](https://go.dev/doc/install)
-[![version](https://img.shields.io/badge/version-v0.3.9-green)]()
+
+[![version](https://img.shields.io/badge/version-v0.4.0-green)]()
 
 CLI 项目通过封装 API Server 的 REST API 提供了一个简单的命令行工具，用于简化用户使用 API 的操作。
 
@@ -53,22 +54,22 @@ CLI 还包含以下参数标志：
 
 | command                              | short command   | resource               | args  | flags | example                                        |
 |--------------------------------------|-----------------|------------------------|-------|-------|------------------------------------------------|
-| nautes product get                   | prod,prods      | product                | name  |       | nautes prod get product-name                   |
-| nautes product delete                | prod,prods      | product                | name  |       | nautes prod delete product-name                |
-| nautes cluster get                   | cls             | cluster                | name  |       | nautes cls get cluster-name                    |
-| nautes cluster delete                | cls             | cluster                | name  |       | nautes cls delete cluster-name                 |
-| nautes environment get               | env,envs        | environment            | name  | -p    | nautes env get env-name -p product-name        |
-| nautes environment delete            | env,envs        | environment            | name  | -p    | nautes env delete env-name -p product-name     |
-| nautes project get                   | pro,pros,proj   | project                | name  | -p    | nautes pro get project-name -p product-name    |
-| nautes project delete                | pro,pros,proj   | project                | name  | -p    | nautes pro delete project-name -p product-name |
-| nautes coderepo get                  | cr,crs          | coderepo               | name  | -p    | nautes cr get cr-name -p product-name          |
-| nautes coderepo delete               | cr,crs          | coderepo               | name  | -p    | nautes cr delete cr-name -p product-name       |
-| nautes coderepobinding get           | crb,crbs        | coderepobinding        | name  | -p    | nautes crb get crb-name -p product-name        |
-| nautes coderepobinding delete        | crb,crbs        | coderepobinding        | name  | -p    | nautes crb delete crb-name -p product-name     |
-| nautes deploymentruntime get         | dr,drs          | deploymentruntime      | name  | -p    | nautes dr get dr-name -p product-name          |
-| nautes deploymentruntime delete      | dr,drs          | deploymentruntime      | name  | -p    | nautes dr delete dr-name -p product-name       |
-| nautes projectpipelineruntime get    | ppr,pprs        | projectpipelineruntime | name  | -p    | nautes ppr get ppr-name -p product-name        |
-| nautes projectpipelineruntime delete | ppr,pprs        | projectpipelineruntime | name  | -p    | nautes ppr delete ppr-name -p product-name     |
+| nautes get product                   | prod,prods      | product                | name  |       | nautes get prod product-name                   |
+| nautes delete product                | prod,prods      | product                | name  |       | nautes delete prod product-name                |
+| nautes get cluster                   | cls             | cluster                | name  |       | nautes get cls cluster-name                    |
+| nautes delete cluster                | cls             | cluster                | name  |       | nautes delete cls cluster-name                 |
+| nautes get environment               | env,envs        | environment            | name  | -p    | nautes get env env-name -p product-name        |
+| nautes delete environment            | env,envs        | environment            | name  | -p    | nautes delete env env-name -p product-name     |
+| nautes get project                   | pro,pros,proj   | project                | name  | -p    | nautes get pro project-name -p product-name    |
+| nautes delete project                | pro,pros,proj   | project                | name  | -p    | nautes delete pro project-name -p product-name |
+| nautes get coderepo                  | cr,crs          | coderepo               | name  | -p    | nautes get cr cr-name -p product-name          |
+| nautes delete coderepo               | cr,crs          | coderepo               | name  | -p    | nautes delete cr cr-name -p product-name       |
+| nautes get coderepobinding           | crb,crbs        | coderepobinding        | name  | -p    | nautes get crb crb-name -p product-name        |
+| nautes delete coderepobinding        | crb,crbs        | coderepobinding        | name  | -p    | nautes delete crb crb-name -p product-name     |
+| nautes get deploymentruntime         | dr,drs          | deploymentruntime      | name  | -p    | nautes get dr dr-name -p product-name          |
+| nautes delete deploymentruntime      | dr,drs          | deploymentruntime      | name  | -p    | nautes delete dr dr-name -p product-name       |
+| nautes get projectpipelineruntime    | ppr,pprs        | projectpipelineruntime | name  | -p    | nautes get ppr ppr-name -p product-name        |
+| nautes delete projectpipelineruntime | ppr,pprs        | projectpipelineruntime | name  | -p    | nautes delete ppr ppr-name -p product-name     |
 
 
 CLI 的具体的使用方法请参见[用户手册](https://nautes.io/guide/user-guide/deploy-an-application.html)

@@ -1,5 +1,20 @@
 # Change Log
 
+## v0.4.0
+
+> Change log since v0.3.9
+
+### Upgrade Notice
+
+> No, really, you must read this before you upgrade.
+
+- Support custom components for cluster resource.
+
+### How to use
+```shell
+nautes get ppr -p $PRODUCT-NAME -t $TOKEN -s $API-SERVER
+```
+
 ## v0.3.9
 
 > Change log since v0.3.8

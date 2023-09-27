@@ -57,10 +57,7 @@ func GenerateTable(responseValues []reflect.Value, responseItemType reflect.Type
 	columnsDefinitions := buildPrintColumnsName(columns, mergeTos)
 
 	//build table rows
-	rows, err := buildTable(responseValues, columns, mergeTos)
-	if err != nil {
-		return nil, err
-	}
+	rows := buildTable(responseValues, columns, mergeTos)
 
 	table := &metav1.Table{
 		ColumnDefinitions: columnsDefinitions,
@@ -92,6 +89,21 @@ func findDeepField(sType reflect.Type) (columns []*Columns, mergeTos []*mergeTo)
 		kind := field.Type.Kind()
 		var fieldType = field.Type
 		var fieldName = field.Name
+		column := field.Tag.Get(types.Column)
+		mergeToColumn := field.Tag.Get(types.MergeTo)
+		if kind == reflect.Struct {
+			if column != "" {
+				if strings.Contains(column, ":") {
+					columnArr := strings.Split(column, ":")
+					column = columnArr[0]
+					if len(columnArr) > 1 {
+						fieldName = fmt.Sprintf("%s:%s", fieldName, columnArr[1])
+					}
+				}
+				columns, mergeTos = dealTagForColumns(column, mergeToColumn, fieldName, columns, mergeTos)
+				continue
+			}
+		}
 		if kind == reflect.Ptr {
 			prtValue := reflect.New(fieldType)
 			realValue := reflect.Indirect(prtValue)
@@ -108,15 +120,11 @@ func findDeepField(sType reflect.Type) (columns []*Columns, mergeTos []*mergeTo)
 			case reflect.Struct:
 				columns, mergeTos = addPrefixFieldNameToDeepField(fieldType, fieldName, columns, mergeTos)
 			default:
-				column := field.Tag.Get(types.Column)
-				mergeToColumn := field.Tag.Get(types.MergeTo)
 				columns, mergeTos = dealTagForColumns(column, mergeToColumn, fieldName, columns, mergeTos)
 			}
 		case reflect.Map:
 			continue
 		default:
-			column := field.Tag.Get(types.Column)
-			mergeToColumn := field.Tag.Get(types.MergeTo)
 			columns, mergeTos = dealTagForColumns(column, mergeToColumn, fieldName, columns, mergeTos)
 		}
 	}
@@ -192,7 +200,7 @@ func buildPrintColumnsName(columns []*Columns, mergeTos []*mergeTo) []metav1.Tab
 }
 
 // buildTable builds table which is includes table header and table row.
-func buildTable(responseValues []reflect.Value, columns []*Columns, mergeTos []*mergeTo) ([]metav1.TableRow, error) {
+func buildTable(responseValues []reflect.Value, columns []*Columns, mergeTos []*mergeTo) []metav1.TableRow {
 	rows := make([]metav1.TableRow, 0)
 	//rebuild column name
 	var fieldColumns []string
@@ -201,17 +209,14 @@ func buildTable(responseValues []reflect.Value, columns []*Columns, mergeTos []*
 		fieldColumns = append(fieldColumns, column.FieldName)
 	}
 	for _, value := range responseValues {
-		itemRows, err := buildTableRows(value, fieldColumns, mergeTos)
-		if err != nil {
-			return nil, err
-		}
+		itemRows := buildTableRows(value, fieldColumns, mergeTos)
 		rows = append(rows, itemRows...)
 	}
-	return rows, nil
+	return rows
 }
 
 // buildTableRows builds table row from field columns name which is to display by stdout.
-func buildTableRows(responseValue reflect.Value, columns []string, mergeTos []*mergeTo) ([]metav1.TableRow, error) {
+func buildTableRows(responseValue reflect.Value, columns []string, mergeTos []*mergeTo) []metav1.TableRow {
 	row := metav1.TableRow{}
 	var rows []metav1.TableRow
 
@@ -252,7 +257,6 @@ func buildTableRows(responseValue reflect.Value, columns []string, mergeTos []*m
 	rows = append(rows, row)
 	//deal empty columns
 	if len(mergeValueToColumnName) > 0 {
-
 		rowEmpty := metav1.TableRow{}
 		cellsLen := len(rebuildColumns)
 		for i := 0; i < cellsLen; i++ {
@@ -271,7 +275,7 @@ func buildTableRows(responseValue reflect.Value, columns []string, mergeTos []*m
 		}
 		rows = append(rows, rowEmptyOther)
 	}
-	return rows, nil
+	return rows
 }
 
 // getValueByColumnName gets column value by column name.
@@ -288,11 +292,21 @@ func getValueByColumnName(responseValue reflect.Value, column []string) (respons
 	if responseValue.Kind() == reflect.Slice {
 		return getValueOfSliceByStruct(responseValue, column)
 	}
-	if !responseValue.FieldByName(column[0]).IsValid() {
+	if !responseValue.FieldByName(column[0]).IsValid() && !strings.Contains(column[0], ":") {
 		return ""
 	}
 	if len(column) == 1 {
-		return getValueByColumnKind(responseValue, column[0])
+		var columnName, subFieldName string
+		if strings.Contains(column[0], ":") {
+			columnArr := strings.Split(column[0], ":")
+			columnName = columnArr[0]
+			if len(columnArr) > 1 {
+				subFieldName = columnArr[1]
+			}
+		} else {
+			columnName = column[0]
+		}
+		return getValueByColumnKind(responseValue, columnName, subFieldName)
 	}
 	responseValue = responseValue.FieldByName(column[0])
 	column = column[1:]
@@ -300,12 +314,17 @@ func getValueByColumnName(responseValue reflect.Value, column []string) (respons
 }
 
 // getValueByColumnKind gets value which the kind is different.
-func getValueByColumnKind(responseValue reflect.Value, column string) (responseStr string) {
+func getValueByColumnKind(responseValue reflect.Value, column, subFieldName string) (responseStr string) {
+	if responseValue.Kind() == reflect.Invalid {
+		return ""
+	}
 	kind := responseValue.FieldByName(column).Kind()
 	fieldValue := responseValue.FieldByName(column).Interface()
 	switch kind {
 	case reflect.String:
 		responseStr = fieldValue.(string)
+	case reflect.Struct:
+		responseStr = getValueOfStruct(responseValue, column, subFieldName)
 	case reflect.Slice:
 		responseStr = getValueOfSlice(responseValue, column)
 	case reflect.Bool:
@@ -364,15 +383,36 @@ func getValueOfSliceByStruct(responseValue reflect.Value, column []string) (resp
 		}
 	}
 
-	for idx, _ := range duplicateValue {
+	for idx := range duplicateValue {
 		result = append(result, idx)
 	}
 	sort.Strings(result)
-	if len(result) > 6 {
-		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:6], ","))
+	if len(result) > 5 {
+		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:5], ","))
 	} else {
 		responseStr = strings.Join(result, ",")
 	}
+	return responseStr
+}
+
+// getValueOfStruct gets value when the column type is slice.
+func getValueOfStruct(responseValue reflect.Value, column, subFieldName string) (responseStr string) {
+	value := responseValue.FieldByName(column)
+	var result []string
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Field(i)
+		name := getValueByColumnKind(field.Elem(), subFieldName, subFieldName)
+		if name != "" {
+			result = append(result, name)
+		}
+	}
+	sort.Strings(result)
+	if len(result) > 5 {
+		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:5], ","))
+	} else {
+		responseStr = strings.Join(result, ",")
+	}
+	responseStr = fmt.Sprintf("[%d] %s", len(result), responseStr)
 	return responseStr
 }
 
@@ -410,19 +450,19 @@ func PrintTable(table *metav1.Table, output io.Writer) error {
 			if cell != nil {
 				switch val := cell.(type) {
 				case string:
-					print := val
+					printable := val
 					truncated := false
-					breakchar := strings.IndexAny(print, "\f\n\r")
+					breakchar := strings.IndexAny(printable, "\f\n\r")
 					if breakchar >= 0 {
 						truncated = true
-						print = print[:breakchar]
+						printable = printable[:breakchar]
 					}
-					WriteEscaped(output, print)
+					_ = WriteEscaped(output, printable)
 					if truncated {
 						fmt.Fprint(output, "...")
 					}
 				default:
-					WriteEscaped(output, fmt.Sprint(val))
+					_ = WriteEscaped(output, fmt.Sprint(val))
 				}
 			}
 		}

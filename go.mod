@@ -7,8 +7,9 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
+	golang.org/x/text v0.8.0
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.27.4
-	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -22,7 +23,6 @@ require (
 	github.com/stretchr/testify v1.8.2 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect

@@ -16,31 +16,21 @@ spec:
   workerType: "pipeline"
   # 主域名，使用物理集群的 IP 替换变量 $cluster-ip
   primaryDomain: "$cluster-ip.nip.io"
-  # tekton 域名，使用物理集群的 IP 替换变量 $cluster-ip
-  tektonHost: "tekton.physical-worker-$suffix.$cluster-ip.nip.io"
-  # argocd 域名，使用物理集群的 IP 替换变量 $cluster-ip
-  argocdHost: "argocd.physical-worker-$suffix.$cluster-ip.nip.io"
-  # traefik 配置
-  traefik:
-    httpNodePort: "30080"
-    httpsNodePort: "30443"
-  # componentsList 可选，集群自定义组件
+  # componentsList 可选，集群自定义组件，通过组件的类型选择一个或多个组件安装到集群中
   componentsList:
     multiTenant:
       name: hnc
-      namespace: hnc
-    certMgt:
-      name: cert-manager
-      namespace: cert-manager
-    secretMgt:
-      name: vault
-      namespace: vault
+      namespace: hnc-system
     secretSync:
       name: external-secrets
       namespace: external-secrets
-    ingressController:
+    gateway:
       name: traefik
-      namespace: ingress-traefik
+      namespace: traefik
+      # 可选，组件属性
+      additions:
+        httpNodePort: "30080"
+        httpsNodePort: "30443"
     deployment:
       name: argocd
       namespace: argocd
@@ -50,19 +40,21 @@ spec:
     pipeline:
       name: tekton
       namespace: tekton-pipelines
-  # reservedNamespacesAllowedProducts可选，保留命名空间与产品之间的对应关系，使用产品名称替换：$product-name
+  # reservedNamespacesAllowedProducts 可选，如果需要使用组件的保留命名空间，使用产品名称替换：$product-name
   reservedNamespacesAllowedProducts:
+    tekton-pipelines:
+      - $product-name
+    argo-events:
+      - $product-name
     argocd:
       - $product-name
-    argo-rollouts:
-      - $product-name
-    cert-manager:
+    traefik:
       - $product-name
     external-secrets:
       - $product-name
-    vault:
+    hnc-system:
       - $product-name
-  # productAllowedClusterResources可选，产品与集群资源的对应关系，使用产品名称替换：$product-name
+  # productAllowedClusterResources 可选，如果需要使用集群级别的权限，使用产品名称替换：$product-name
   productAllowedClusterResources:
     $product-name:
       - kind: ClusterRole

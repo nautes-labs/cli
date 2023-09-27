@@ -16,16 +16,23 @@ package commands
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/nautes-labs/cli/cmd/printers"
 	"github.com/nautes-labs/cli/cmd/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 	"os"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"strings"
+)
+
+const (
+	OutputYaml = "yaml"
+	OutputJson = "json"
+	OutputWide = "wide"
 )
 
 // CheckError logs a fatal message and exits with error code if err is not nil
@@ -46,10 +53,9 @@ func Fatal(exitcode int, args ...interface{}) {
 
 // NewResourceCommand returns a new instance of an `nautes xxx get` command
 func NewResourceCommand(clientOptions *types.ClientOptions, resourceType reflect.Type, responseItemType reflect.Type,
-	subCommandFunc func(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, resourceType, responseItemType reflect.Type) *cobra.Command) (ccCommands []*cobra.Command) {
-
+	subCommandFunc func(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string,
+		resourceType, responseItemType reflect.Type) *cobra.Command) (ccCommands []*cobra.Command) {
 	resourceHandler := reflect.New(resourceType).Interface().(types.ResourceHandler)
-
 	//get short commands from tags
 	var shortCommands []string
 	if field, ok := resourceType.FieldByName(types.ResourceKind); ok {
@@ -73,7 +79,7 @@ func NewResourceCommand(clientOptions *types.ClientOptions, resourceType reflect
 	return
 }
 
-func SubGetCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, resourceType, responseItemType reflect.Type) *cobra.Command {
+func SubGetCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, _, responseItemType reflect.Type) *cobra.Command {
 	var (
 		output  string
 		product string
@@ -89,7 +95,7 @@ func SubGetCommand(clientOptions *types.ClientOptions, resourceHandler types.Res
 nautes get %s name-101 name-102`, resourceName, resourceName),
 
 		Run: func(c *cobra.Command, args []string) {
-			responseValue := reflect.Value{}
+			var responseValue reflect.Value
 			if product != "" {
 				if resourceKind != IgnoreProductOfCluster && resourceKind != IgnoreProductOfProduct {
 					if resourceKind == CodeRepoBinding {
@@ -116,11 +122,11 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 				customStructType := reflect.StructOf(fields)
 				responseValue = reflect.New(customStructType)
 
-				resBytes, err := buildResourceAndDo(METHOD_GET, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
+				resBytes, err := buildResourceAndDo(MethodGet, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
 				if err != nil {
 					CheckError(err)
 				}
-				err = jsonIterator.Unmarshal(resBytes, responseValue.Interface())
+				err = json.Unmarshal(resBytes, responseValue.Interface())
 				if err != nil {
 					CheckError(err)
 				}
@@ -131,16 +137,15 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 					resourceResponseList = append(resourceResponseList, item.Interface())
 					resourceResponseListValue = append(resourceResponseListValue, item)
 				}
-
 			} else {
 				for _, argsSelector := range args {
 					resourceValue.FieldByName("Spec").FieldByName("Name").SetString(argsSelector)
-					resBytes, err := buildResourceAndDo(METHOD_GET, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
+					resBytes, err := buildResourceAndDo(MethodGet, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
 					if err != nil {
 						CheckError(err)
 					}
 					responseValue = reflect.New(responseItemType)
-					err = jsonIterator.Unmarshal(resBytes, responseValue.Interface())
+					err = json.Unmarshal(resBytes, responseValue.Interface())
 					if err != nil {
 						CheckError(err)
 					}
@@ -153,10 +158,10 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 			}
 
 			switch output {
-			case "yaml", "json":
+			case OutputYaml, OutputJson:
 				err := PrintResourceResponseList(resourceResponseList, output, outputFlag)
 				CheckError(err)
-			case "wide", "":
+			case OutputWide, "":
 				table, err := printers.GenerateTable(resourceResponseListValue, responseItemType)
 				CheckError(err)
 				err = printers.PrintTable(table, os.Stdout)
@@ -186,7 +191,7 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 }
 
 // SubDeleteCommand returns a new instance of an `nautes xxx rm` command
-func SubDeleteCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, resourceType, responseItemType reflect.Type) *cobra.Command {
+func SubDeleteCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, _, _ reflect.Type) *cobra.Command {
 	var noPrompt bool
 	var product string
 	resourceValue := reflect.ValueOf(resourceHandler).Elem()
@@ -213,12 +218,13 @@ nautes delete %s name-101 name-102`, resourceName, resourceName),
 					}
 				}
 			}
-			var isConfirmAll bool = false
+			var isConfirmAll bool
 			for _, argsSelector := range args {
 				var lowercaseAnswer string
 				if !noPrompt {
 					if !isConfirmAll {
-						lowercaseAnswer = AskToProceedS("Are you sure you want to remove '" + argsSelector + "'? [y/n/A] where 'A' is to remove all specified resources without prompting. ")
+						lowercaseAnswer = AskToProceedS("Are you sure you want to remove '" + argsSelector +
+							"'? [y/n/A] where 'A' is to remove all specified resources without prompting. ")
 						if lowercaseAnswer == "a" {
 							lowercaseAnswer = "y"
 							isConfirmAll = true
@@ -232,14 +238,13 @@ nautes delete %s name-101 name-102`, resourceName, resourceName),
 
 				if lowercaseAnswer == "y" {
 					resourceValue.FieldByName("Spec").FieldByName("Name").SetString(argsSelector)
-					_, err := buildResourceAndDo(METHOD_DELETE, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
+					_, err := buildResourceAndDo(MethodDelete, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
 					if err != nil {
 						CheckError(err)
 					}
 					fmt.Printf("%s '%s' removed\n", resourceHandler.GetKind(), argsSelector)
-
 				} else {
-					fmt.Println("The command to remove '" + argsSelector + "' was cancelled.")
+					fmt.Println("The command to remove '" + argsSelector + "' was canceled.")
 				}
 			}
 		},
@@ -284,13 +289,13 @@ func AskToProceedS(message string) string {
 // PrintResource prints a single resource in YAML or JSON format to stdout according to the output format
 func PrintResource(resource interface{}, output string) error {
 	switch output {
-	case "json":
+	case OutputJson:
 		jsonBytes, err := jsoniter.MarshalIndent(resource, "", "  ")
 		if err != nil {
 			return fmt.Errorf("unable to marshal resource to json: %w", err)
 		}
 		fmt.Println(string(jsonBytes))
-	case "yaml":
+	case OutputYaml:
 		yamlBytes, err := yaml.Marshal(resource)
 		if err != nil {
 			return fmt.Errorf("unable to marshal resource to yaml: %w", err)
@@ -318,18 +323,24 @@ func PrintResourceResponseList(resources interface{}, output string, single bool
 	}
 
 	switch output {
-	case "json":
+	case OutputJson:
 		jsonBytes, err := jsoniter.MarshalIndent(resources, "", "  ")
 		if err != nil {
 			return fmt.Errorf("unable to marshal resources to json: %w", err)
 		}
-		fmt.Println(string(jsonBytes))
-	case "yaml":
+		_, err = fmt.Println(string(jsonBytes))
+		if err != nil {
+			return err
+		}
+	case OutputYaml:
 		yamlBytes, err := yaml.Marshal(resources)
 		if err != nil {
 			return fmt.Errorf("unable to marshal resources to yaml: %w", err)
 		}
-		fmt.Print(string(yamlBytes))
+		_, err = fmt.Print(string(yamlBytes))
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown output format: %s", output)
 	}
