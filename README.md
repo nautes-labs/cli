@@ -2,7 +2,6 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![golang](https://img.shields.io/badge/golang-v1.20-brightgreen)](https://go.dev/doc/install)
-
 [![version](https://img.shields.io/badge/version-v0.4.0-green)]()
 
 CLI 项目通过封装 API Server 的 REST API 提供了一个简单的命令行工具，用于简化用户使用 API 的操作。
