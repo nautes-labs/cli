@@ -44,8 +44,6 @@ spec:
       - $product-name
     external-secrets:
       - $product-name
-    cert-manager:
-      - $product-name
     hnc-system:
       - $product-name
   # productAllowedClusterResources 可选，如果需要使用集群级别的权限，使用产品名称替换：$product-name

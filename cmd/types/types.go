@@ -343,6 +343,7 @@ type ProjectPipelineRuntimeResponse struct {
 
 type ProjectPipelineRuntimeResponseItem struct {
 	Name        string                                   `yaml:"name" json:"name" column:"name"`
+	Account     string                                   `yaml:"account" json:"account" column:"account"  mergeTo:"name"`
 	Project     string                                   `yaml:"project" json:"project" column:"project"`
 	Destination *ProjectPipelineRuntimeCommonDestination `yaml:"destination" json:"destination"`
 	Isolation   string                                   `yaml:"isolation" json:"isolation"`
@@ -404,6 +405,7 @@ type DeploymentRuntimeResponse struct {
 
 type DeploymentRuntimeResponseItem struct {
 	Name           string                                       `yaml:"name" json:"name" column:"name"`
+	Account        string                                       `yaml:"account" json:"account" column:"account"  mergeTo:"name"`
 	Product        string                                       `yaml:"product" json:"product" column:"product"`
 	ManifestSource *DeploymentRuntimeResponseItemManifestSource `yaml:"manifestsource" json:"manifest_source"`
 	ProjectsRef    []string                                     `yaml:"projectsRef" json:"projects_ref" column:"projectsRef"`
