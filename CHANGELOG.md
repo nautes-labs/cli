@@ -1,5 +1,54 @@
 # Change Log
 
+## v0.4.1
+
+> Change log since v0.4.0
+
+### Upgrade Notice
+
+> No, really, you must read this before you upgrade.
+
+### Fixed
+1. Fixed path error of examples/demo-pipeline.yaml.
+
+### Changes
+1. Renamed the attribute of additions of the multi-tenant such as ProductResourcePathPipeline, ProductResourceRevision, and SyncResourceTypes.
+```yaml
+  componentsList:
+     multiTenant:
+        name: hnc
+        namespace: hnc-system
+        additions:
+           productResourceKustomizeFileFolder: templates/pipelines
+           productResourceRevision: main
+           syncResourceTypes: tekton.dev/Pipeline
+```
+
+### New Feature
+1. By default, the runtime creates an account with the name of the runtime. You can also specify an account or not.
+   What does mean the account for runtime which is the deployment runtime, or project pipeline runtime? It's a ServiceAccount for Kubernetes and a Role for Vault.
+- DeploymentRuntime
+```yaml
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: DeploymentRuntime
+spec:
+  name: dr-demo
+  account: dr-demo-account
+```
+- ProjectPipelineRuntime
+```yaml
+apiVersion: nautes.resource.nautes.io/v1alpha1
+kind: ProjectPipelineRuntime
+spec:
+  name: pr-demo
+  account: pr-demo-account
+```
+
+### How to use
+```shell
+nautes get ppr -p $PRODUCT-NAME -t $TOKEN -s $API-SERVER
+```
+
 ## v0.4.0
 
 > Change log since v0.3.9
@@ -8,7 +57,40 @@
 
 > No, really, you must read this before you upgrade.
 
-- Support custom components for cluster resource.
+### Changes
+1. Deleted the argocdHost tektonHost and traefik attributes when adding a cluster.
+
+### New Feature
+1. Supported custom components for cluster resource. It would be best to use the componentsList attribute when adding a cluster.
+   The componentsList includes three properties which are name and namespace and additions which are additional properties. The Key is the component attribute, the Value is value of the component attribute.
+   eg: If the traefik as gateway, it can be set attributes of traefik by the additions attribute.
+```yaml
+  componentsList:
+    gateway:
+      name: traefik
+      namespace: traefik
+      additions:
+        httpNodePort: "30080"
+        httpsNodePort: "30443"
+```
+
+eg: At least be used multiTenant component and gateway of the cluster when adding a pipeline runtime cluster.
+```yaml
+  componentsList:
+    multiTenant:
+      name: hnc
+      namespace: hnc-system
+      additions:
+        ProductResourcePathPipeline: templates/pipelines
+        ProductResourceRevision: main
+        SyncResourceTypes: tekton.dev/Pipeline
+    gateway:
+      name: traefik
+      namespace: traefik
+      additions:
+        httpNodePort: "30080"
+        httpsNodePort: "30443"
+```
 
 ### How to use
 ```shell

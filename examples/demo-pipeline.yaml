@@ -35,6 +35,8 @@ kind: ProjectPipelineRuntime
 spec:
   # 流水线运行时的名称
   name: pr-demo-$suffix
+  # 可选项，执行运行时需要的账号
+  account: pr-demo-account-$suffix
   # 流水线运行时的所属产品
   product: demo-$suffix
   # 流水线运行时的所属项目
@@ -52,13 +54,13 @@ spec:
   # 承载部署运行时的环境
   destination:
     environment: env-dev-demo-$suffix
-    namespace: pr-demo-$suffix
+    namespace: pr-demo-ns-$suffix
   # 可选项，流水线运行时的自定义资源
   additionalResources:
     git:
       codeRepo: coderepo-pipeline-demo-$suffix
       revision: main
-      path: /test
+      path: test
   # 触发流水线的事件源
   eventSources:
     # 事件源名称

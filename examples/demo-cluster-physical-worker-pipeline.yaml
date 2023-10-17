@@ -21,6 +21,10 @@ spec:
     multiTenant:
       name: hnc
       namespace: hnc-system
+      additions:
+        productResourceKustomizeFileFolder: templates/pipelines
+        productResourceRevision: main
+        syncResourceTypes: tekton.dev/Pipeline
     secretSync:
       name: external-secrets
       namespace: external-secrets
