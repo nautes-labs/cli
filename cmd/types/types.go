@@ -349,11 +349,40 @@ type ProjectPipelineRuntimeResponseItem struct {
 	Isolation   string                                   `yaml:"isolation" json:"isolation"`
 	Pipelines   *[]ProjectPipelineRuntimeCommonPipelines `yaml:"pipelines" json:"pipelines"`
 	// Optional
-	Product             string                                              `yaml:"product" json:"product"`
-	PipelineSource      string                                              `yaml:"pipelineSource" json:"pipeline_source" column:"PipelineSource"`
-	EventSources        *[]ProjectPipelineRuntimeResponseItemEventSources   `yaml:"eventSources" json:"event_sources"`
-	PipelineTriggers    *ProjectPipelineRuntimeResponseItemPipelineTriggers `yaml:"pipelineTriggers" json:"pipeline_triggers"`
-	AdditionalResources ProjectPipelineRuntimeAdditionalResources           `yaml:"additionalResources" json:"additional_resources"`
+	Product          string                                              `yaml:"product" json:"product"`
+	PipelineSource   string                                              `yaml:"pipelineSource" json:"pipeline_source" column:"PipelineSource"`
+	EventSources     *[]ProjectPipelineRuntimeResponseItemEventSources   `yaml:"eventSources" json:"event_sources"`
+	PipelineTriggers *ProjectPipelineRuntimeResponseItemPipelineTriggers `yaml:"pipelineTriggers" json:"pipeline_triggers"`
+	// +optional
+	AdditionalResources *ProjectPipelineRuntimeAdditionalResources `yaml:"additionalResources" json:"additional_resources"`
+	// +optional
+	// Hooks are hooks that users need to add before or after the user pipeline.
+	Hooks *Hooks `yaml:"hooks" json:"hooks,omitempty"`
+}
+
+// Hooks are hooks will to add before or after the user pipeline.
+type Hooks struct {
+	// +optional
+	// PreHooks is a set of hooks to be executed before running the user pipeline.
+	PreHooks []Hook `yaml:"preHooks" json:"pre_hooks,omitempty"`
+	// +optional
+	// PostHooks is a set of hooks that will run after the user pipeline starts executing.
+	PostHooks []Hook `yaml:"postHooks" json:"post_hooks,omitempty"`
+}
+
+// Hook is a record of information about a runnable hook.
+type Hook struct {
+	// Name is the name of the hook to be executed.
+	Name string `yaml:"name" json:"name"`
+	// Alias is the alias given by the user for the hook.
+	// If the user does not enter this value, the name of the hook will be obtained from 'name'.
+	// When the hook appears in both PreHooks and PostHooks, it is necessary to specify the name to prevent conflicts.
+	// +optional
+	Alias *string `yaml:"alias" json:"alias,omitempty"`
+	// Vars is the parameter that the user wants to pass to the hook,
+	// and the input items are determined based on the pipeline component in cluster.
+	// +optional
+	Vars map[string]string `yaml:"vars" json:"vars,omitempty"`
 }
 
 type ProjectPipelineRuntimeResponseItemEventSources struct {

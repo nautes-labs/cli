@@ -82,3 +82,25 @@ spec:
   - eventSource: webhook
     # 关联的流水线
     pipeline: pipeline-dev-demo-$suffix
+  # 可选项，如果系统提供了插件才可以使用这项配置
+  hooks:
+    # 可选项，在用户侧的流水线运行之前添加一组钩子任务
+    preHooks:
+      # 钩子的名字
+      - name: log
+        # 钩子的别名，当钩子同时出现在 preHooks 和 postHooks 中时，需要指定别名以防止冲突
+        alias: pre-log
+        # 执行钩子需要的参数
+        vars:
+          # 参数表示打印输出的路径，执行结果如：ls /var
+          printPath: /var
+    # 可选项，在用户侧的流水线运行之后添加一组钩子任务
+    postHooks:
+      # 钩子的名字
+      - name: log
+        # 钩子的别名，当钩子同时出现在 preHooks 和 postHooks 中时，需要指定别名以防止冲突
+        alias: post-log
+        # 执行钩子需要的参数
+        vars:
+          # 参数表示打印输出的路径，执行结果如：ls /usr
+          printPath: /usr
