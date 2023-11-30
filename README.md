@@ -82,12 +82,12 @@ CLI 的具体的使用方法请参见[用户手册](https://nautes.io/guide/user
 ```yaml
 type ArtifactRepo struct {
   APIVersion string              `yaml:"apiVersion" json:"api_version"`
-  Kind       string              `yaml:"kind" json:"kind" commands:"ar,ars" applyOrder:"8" removeOrder:"0"`
+  Kind       string              `yaml:"kind" json:"kind" commands:"ar,ars" applyOrder:"8" removeOrder:"8"`
   Spec       ArtifactRepoResponseItem `yaml:"spec" json:"spec"`
 }
 
 type ArtifactRepoResponse struct {
-  Items []*ArtifactRepoResponseItem `json:"items"`
+  Items []*ArtifactRepoResponseItem `yaml:"items" json:"items"`
 }
 
 type ArtifactRepoResponseItem struct {

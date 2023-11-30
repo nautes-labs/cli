@@ -61,7 +61,7 @@ type ArtifactRepo struct {
 }
 
 type ArtifactRepoResponse struct {
-	Items []*ArtifactRepoResponseItem `json:"items"`
+	Items []*ArtifactRepoResponseItem `yaml:"items" json:"items"`
 }
 
 type ArtifactRepoResponseItem struct {
