@@ -61,21 +61,34 @@ func main() {
 			ResourceType:     reflect.TypeOf(types.DeploymentRuntime{}),
 			ResponseItemType: reflect.TypeOf(types.DeploymentRuntimeResponseItem{}),
 		},
+		//{
+		//	ResourceType:     reflect.TypeOf(types.ArtifactRepo{}),
+		//	ResponseItemType: reflect.TypeOf(types.ArtifactRepoResponseItem{}),
+		//},
 	}
 
+	// create slices to store resources types based on apply and remove orders
 	var applyResourceTypes = make([]types.ResourcesType, len(resourcesTypeArr))
 	var removeResourceTypes = make([]types.ResourcesType, len(resourcesTypeArr))
+
+	// structure to store order information
 	type order struct {
 		applyOrderIndex  int
 		removeOrderIndex int
 		index            int
 	}
+
 	var orderArr []order
+
+	// iterate over resource types and extract apply and remove orders from tags
 	for idx, value := range resourcesTypeArr {
+		// check if the "ResourceKind" field exists in the struct
 		if field, ok := value.ResourceType.FieldByName(types.ResourceKind); ok {
 			tag := field.Tag
 			applyOrder := tag.Get(types.ApplyOrder)
 			removeOrder := tag.Get(types.RemoveOrder)
+
+			// parse apply and remove orders as integers
 			applyOrderIndex, err := strconv.ParseInt(applyOrder, 10, 32)
 			if err != nil {
 				commands.CheckError(err)
@@ -84,6 +97,8 @@ func main() {
 			if err != nil {
 				commands.CheckError(err)
 			}
+
+			// store order information in the array
 			orderArr = append(orderArr, order{
 				applyOrderIndex:  int(applyOrderIndex),
 				removeOrderIndex: int(removeOrderIndex),
@@ -91,17 +106,27 @@ func main() {
 			})
 		}
 	}
+
+	// sort the order array based on apply order index
 	sort.Slice(orderArr, func(i, j int) bool {
 		return orderArr[i].applyOrderIndex < orderArr[j].applyOrderIndex
 	})
+
+	// populate applyResourceTypes with resource types sorted by apply order
 	for i := 0; i < len(orderArr); i++ {
 		applyResourceTypes[i] = resourcesTypeArr[orderArr[i].index]
+		//fmt.Println("apply", i, resourcesTypeArr[orderArr[i].index])
 	}
+
+	// sort the order array based on remove order index
 	sort.Slice(orderArr, func(i, j int) bool {
-		return orderArr[i].removeOrderIndex < orderArr[j].removeOrderIndex
+		return orderArr[i].removeOrderIndex > orderArr[j].removeOrderIndex
 	})
+
+	// populate removeResourceTypes with resource types sorted by remove order
 	for i := 0; i < len(orderArr); i++ {
 		removeResourceTypes[i] = resourcesTypeArr[orderArr[i].index]
+		//fmt.Println("delete", i, resourcesTypeArr[orderArr[i].index])
 	}
 
 	var rootCmd = &cobra.Command{

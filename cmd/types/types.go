@@ -27,6 +27,8 @@ const DeploymentRuntimePathTemplate = "/api/v1/products/%s/deploymentruntimes/%s
 const ProjectPipelineRuntimePathTemplate = "/api/v1/products/%s/projectpipelineruntimes/%s"
 const ClusterPathTemplate = "/api/v1/clusters/%s"
 
+//const ArtifactRepoPathTemplate = "/api/v1/products/%s/artifactrepos/%s"
+
 const (
 	ResourceKind = "Kind"
 	ApplyOrder   = "applyOrder"
@@ -43,10 +45,46 @@ type ResourcesType struct {
 }
 
 type ResourceHandler interface {
+	// GetKind gets the kind of the resource.
 	GetKind() string
+	// GetPathTemplate gets the path to the request api-server.
 	GetPathTemplate() string
+	// GetPathVarNames gets the parameters in the request path.
 	GetPathVarNames() []string
 }
+
+/**
+type ArtifactRepo struct {
+	APIVersion string                   `yaml:"apiVersion" json:"api_version"`
+	Kind       string                   `yaml:"kind" json:"kind" commands:"ar,ars" applyOrder:"8" removeOrder:"8"`
+	Spec       ArtifactRepoResponseItem `yaml:"spec" json:"spec"`
+}
+
+type ArtifactRepoResponse struct {
+	Items []*ArtifactRepoResponseItem `json:"items"`
+}
+
+type ArtifactRepoResponseItem struct {
+	ArtifactRepoProvider string   `json:"artifact_repo_provider" yaml:"artifactRepoProvider"`
+	Product              string   `json:"product" yaml:"product"  column:"product"`
+	Projects             []string `json:"projects" yaml:"projects"`
+	RepoName             string   `json:"repo_name" yaml:"repoName" column:"repoName"`
+	RepoType             string   `json:"repo_type" yaml:"repoType"  column:"repoType" mergeTo:"repoName"`
+	PackageType          string   `json:"package_type" yaml:"packageType"`
+}
+
+func (ar *ArtifactRepo) GetKind() string {
+	return ar.Kind
+}
+
+func (ar *ArtifactRepo) GetPathTemplate() string {
+	return ArtifactRepoPathTemplate
+}
+
+func (ar *ArtifactRepo) GetPathVarNames() []string {
+	return []string{"Product", "Name"}
+}
+**/
 
 type Base struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
@@ -55,7 +93,7 @@ type Base struct {
 
 type Cluster struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"cls" applyOrder:"0" removeOrder:"7"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"cls" applyOrder:"0" removeOrder:"0"`
 	Spec       ClusterResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -129,7 +167,7 @@ func (c *Cluster) GetPathVarNames() []string {
 
 type Product struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"prod,prods" applyOrder:"1" removeOrder:"6"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"prod,prods" applyOrder:"1" removeOrder:"1"`
 	Spec       ProductResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -168,7 +206,7 @@ func (p *Product) GetPathVarNames() []string {
 
 type Environment struct {
 	APIVersion string                  `yaml:"apiVersion" json:"api_version"`
-	Kind       string                  `yaml:"kind" json:"kind" commands:"env,envs" applyOrder:"2" removeOrder:"5"`
+	Kind       string                  `yaml:"kind" json:"kind" commands:"env,envs" applyOrder:"2" removeOrder:"2"`
 	Spec       EnvironmentResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -197,7 +235,7 @@ func (e *Environment) GetPathVarNames() []string {
 
 type Project struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"pro,proj,pros" applyOrder:"3" removeOrder:"4"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"pro,proj,pros" applyOrder:"3" removeOrder:"3"`
 	Spec       ProjectResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -225,7 +263,7 @@ func (p *Project) GetPathVarNames() []string {
 
 type CodeRepo struct {
 	APIVersion string               `yaml:"apiVersion" json:"api_version"`
-	Kind       string               `yaml:"kind" json:"kind" commands:"cr,crs" applyOrder:"4" removeOrder:"3"`
+	Kind       string               `yaml:"kind" json:"kind" commands:"cr,crs" applyOrder:"4" removeOrder:"4"`
 	Spec       CodeRepoResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -274,7 +312,7 @@ func (c *CodeRepo) GetPathVarNames() []string {
 
 type CodeRepoBinding struct {
 	APIVersion string                      `yaml:"apiVersion" json:"api_version"`
-	Kind       string                      `yaml:"kind" json:"kind" commands:"crb,crbs" applyOrder:"5" removeOrder:"2"`
+	Kind       string                      `yaml:"kind" json:"kind" commands:"crb,crbs" applyOrder:"5" removeOrder:"5"`
 	Spec       CodeRepoBindingResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -305,7 +343,7 @@ func (c *CodeRepoBinding) GetPathVarNames() []string {
 
 type ProjectPipelineRuntime struct {
 	APIVersion string                             `yaml:"apiVersion" json:"api_version"`
-	Kind       string                             `yaml:"kind" json:"kind" commands:"ppr,pprs" applyOrder:"6" removeOrder:"1"`
+	Kind       string                             `yaml:"kind" json:"kind" commands:"ppr,pprs" applyOrder:"6" removeOrder:"6"`
 	Spec       ProjectPipelineRuntimeResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -424,7 +462,7 @@ func (p *ProjectPipelineRuntime) GetPathVarNames() []string {
 
 type DeploymentRuntime struct {
 	APIVersion string                        `yaml:"apiVersion" json:"api_version"`
-	Kind       string                        `yaml:"kind" json:"kind" commands:"dr,drs" applyOrder:"7" removeOrder:"0"`
+	Kind       string                        `yaml:"kind" json:"kind" commands:"dr,drs" applyOrder:"7" removeOrder:"7"`
 	Spec       DeploymentRuntimeResponseItem `yaml:"spec" json:"spec"`
 }
 

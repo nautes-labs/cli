@@ -48,7 +48,8 @@ type Columns struct {
 	FieldName string
 }
 
-// GenerateTable was used to generate a table, To display by print tag which the value is true.
+// GenerateTable creates a metav1.Table structure from a slice of reflect.Values and the reflection type of the item.
+// It generates table columns and rows based on the provided data and returns the resulting metav1.Table.
 func GenerateTable(responseValues []reflect.Value, responseItemType reflect.Type) (*metav1.Table, error) {
 	columns, mergeTos := generateColumns(responseItemType)
 	//[Spec.Name Spec.Git.Gitlab.Name Spec.Git.Gitlab.Path Spec.Git.Gitlab.Visibility Spec.Git.Gitlab.Description]
@@ -66,7 +67,8 @@ func GenerateTable(responseValues []reflect.Value, responseItemType reflect.Type
 	return table, nil
 }
 
-// generateColumns generates prefix column name which was set true on print tag.
+// generateColumns extracts Columns and mergeTo specifications from the reflection type of the resource.
+// It returns the list of Columns and mergeTo specifications for further processing.
 func generateColumns(resourceType reflect.Type) (columns []*Columns, mergeTos []*mergeTo) {
 	value := reflect.New(resourceType)
 	vi := value.Elem().Interface()
@@ -82,7 +84,8 @@ func generateColumns(resourceType reflect.Type) (columns []*Columns, mergeTos []
 	return
 }
 
-// findDeepField finds deep field name which was set true on print tag.
+// findDeepField recursively explores the fields of a reflection type and extracts Columns and mergeTo specifications.
+// It returns the list of Columns and mergeTo specifications for further processing.
 func findDeepField(sType reflect.Type) (columns []*Columns, mergeTos []*mergeTo) {
 	for i := 0; i < sType.NumField(); i++ {
 		field := sType.Field(i)
@@ -131,7 +134,8 @@ func findDeepField(sType reflect.Type) (columns []*Columns, mergeTos []*mergeTo)
 	return
 }
 
-// addPrefixFieldNameToDeepField add parent field name.
+// addPrefixFieldNameToDeepField adds a prefix to the field names extracted from a deep structure.
+// It is used in the context of nested structures to maintain proper field hierarchy.
 func addPrefixFieldNameToDeepField(fieldType reflect.Type, fieldName string, columns []*Columns, mergeTos []*mergeTo) ([]*Columns, []*mergeTo) {
 	cols, merges := findDeepField(fieldType)
 	for _, col := range cols {
@@ -146,7 +150,7 @@ func addPrefixFieldNameToDeepField(fieldType reflect.Type, fieldName string, col
 	return columns, mergeTos
 }
 
-// dealTagForColumns build column and mergeTo slice by print column and mergeTo column.
+// dealTagForColumns processes the print and mergeTo tags for a field and updates the corresponding lists.
 func dealTagForColumns(printColumn, mergeToColumn, fieldName string, columns []*Columns, mergeTos []*mergeTo) ([]*Columns, []*mergeTo) {
 	if printColumn != "" {
 		columns = append(columns, &Columns{
@@ -165,19 +169,32 @@ func dealTagForColumns(printColumn, mergeToColumn, fieldName string, columns []*
 	return columns, mergeTos
 }
 
-// buildPrintColumnsName build columns to display.
+// buildPrintColumnsName generates table column definitions based on a list of Columns and mergeTo specifications.
+// It ensures unique column names and handles cases where columns need to be merged or skipped.
+// The resulting table column definitions are returned as a slice of metav1.TableColumnDefinition.
 func buildPrintColumnsName(columns []*Columns, mergeTos []*mergeTo) []metav1.TableColumnDefinition {
+	// Initialize an empty slice to store column definitions
 	columnsDefinitions := make([]metav1.TableColumnDefinition, 0, len(columns))
+
+	// Map to track unique column names and handle duplicates
 	checkSameColumnsName := make(map[string]struct{})
+
+	// Iterate through each column
 	for _, column := range columns {
+		// Get the print name of the column
 		columnName := column.PrintName
+
+		// Check for duplicate column names and append a suffix if necessary
 		if _, ok := checkSameColumnsName[columnName]; ok {
 			columnName = fmt.Sprintf("%s-2", columnName)
 		}
 		checkSameColumnsName[columnName] = struct{}{}
 
+		// Variables to track merging and skipping of columns
 		var notPrintColumn string
 		var fromPrintNames []string
+
+		// Iterate through mergeTo specifications to handle merging and skipping
 		for _, val := range mergeTos {
 			if val.toPrintName == columnName {
 				fromPrintNames = append(fromPrintNames, val.fromPrintName)
@@ -186,16 +203,24 @@ func buildPrintColumnsName(columns []*Columns, mergeTos []*mergeTo) []metav1.Tab
 				notPrintColumn = val.from
 			}
 		}
+
+		// Skip the column if it is marked as not to be printed
 		if notPrintColumn != "" {
 			continue
 		}
+
+		// If merging is needed, update the column name
 		if len(fromPrintNames) > 0 {
 			columnName = fmt.Sprintf("%s / %s", columnName, strings.Join(fromPrintNames, " / "))
 		}
+
+		// Append the column definition to the result
 		columnsDefinitions = append(columnsDefinitions, metav1.TableColumnDefinition{
 			Name: columnName, Type: "string",
 		})
 	}
+
+	// Return the resulting table column definitions
 	return columnsDefinitions
 }
 
@@ -278,23 +303,36 @@ func buildTableRows(responseValue reflect.Value, columns []string, mergeTos []*m
 	return rows
 }
 
-// getValueByColumnName gets column value by column name.
+// getValueByColumnName retrieves the value from a nested structure using reflection
+// based on the provided column names. It handles cases such as structs, slices, and pointers.
+// It returns an empty string if the value is not found or if the input is invalid.
 func getValueByColumnName(responseValue reflect.Value, column []string) (responseStr string) {
+	// Check if the responseValue is invalid or a map, return an empty string in such cases
 	if responseValue.Kind() == reflect.Invalid || responseValue.Kind() == reflect.Map {
 		return ""
 	}
+
+	// If responseValue is a nil pointer, return an empty string
 	if responseValue.Kind() == reflect.Ptr && responseValue.IsNil() {
 		return ""
 	}
+
+	// If responseValue is a pointer, dereference it
 	if responseValue.Kind() == reflect.Ptr {
 		responseValue = reflect.Indirect(responseValue)
 	}
+
+	// If responseValue is a slice, delegate to getValueOfSliceByStruct
 	if responseValue.Kind() == reflect.Slice {
 		return getValueOfSliceByStruct(responseValue, column)
 	}
+
+	// Check if the first column name is valid and not a nested field
 	if !responseValue.FieldByName(column[0]).IsValid() && !strings.Contains(column[0], ":") {
 		return ""
 	}
+
+	// If there is only one column, extract the column and subfield names
 	if len(column) == 1 {
 		var columnName, subFieldName string
 		if strings.Contains(column[0], ":") {
@@ -308,111 +346,198 @@ func getValueByColumnName(responseValue reflect.Value, column []string) (respons
 		}
 		return getValueByColumnKind(responseValue, columnName, subFieldName)
 	}
+
+	// Recursively call the function with the next level of nested structure
 	responseValue = responseValue.FieldByName(column[0])
 	column = column[1:]
 	return getValueByColumnName(responseValue, column)
 }
 
-// getValueByColumnKind gets value which the kind is different.
+// getValueByColumnKind extracts and converts the value of a specific column from a structure
+// based on its kind (type) using reflection. It also handles subfields in case of nested structures.
+// It returns a string representation of the value.
 func getValueByColumnKind(responseValue reflect.Value, column, subFieldName string) (responseStr string) {
+	// Check if the responseValue is invalid, return an empty string if true
 	if responseValue.Kind() == reflect.Invalid {
 		return ""
 	}
+
+	// Obtain the kind (type) of the specified column in the structure
 	kind := responseValue.FieldByName(column).Kind()
+
+	// Get the interface{} representation of the column's value
 	fieldValue := responseValue.FieldByName(column).Interface()
+
+	// Switch based on the kind of the column and handle each type accordingly
 	switch kind {
 	case reflect.String:
 		responseStr = fieldValue.(string)
 	case reflect.Struct:
+		// If the column is a struct, delegate to getValueOfStruct for further processing
 		responseStr = getValueOfStruct(responseValue, column, subFieldName)
 	case reflect.Slice:
+		// If the column is a slice, delegate to getValueOfSlice for further processing
 		responseStr = getValueOfSlice(responseValue, column)
 	case reflect.Bool:
+		// Convert bool to string representation
 		bRes := fieldValue.(bool)
 		responseStr = fmt.Sprintf("%t", bRes)
 	case reflect.Int:
+		// Convert int to string representation
 		bRes := fieldValue.(int)
 		responseStr = fmt.Sprintf("%d", bRes)
 	case reflect.Int32:
+		// Convert int32 to string representation
 		bRes := fieldValue.(int32)
 		responseStr = fmt.Sprintf("%d", bRes)
 	case reflect.Int64:
+		// Convert int64 to string representation
 		bRes := fieldValue.(int64)
 		responseStr = fmt.Sprintf("%d", bRes)
 	case reflect.Float32:
+		// Convert float32 to string representation
 		bRes := fieldValue.(float32)
 		responseStr = fmt.Sprintf("%f", bRes)
 	case reflect.Float64:
+		// Convert float64 to string representation
 		bRes := fieldValue.(float64)
 		responseStr = fmt.Sprintf("%f", bRes)
 	default:
+		// If the kind is not recognized, set the responseStr to an empty string
 		responseStr = ""
 	}
+
+	// Return the string representation of the column's value
 	return responseStr
 }
 
-// getValueOfSlice gets value when the column type is slice.
+// getValueOfSlice extracts and processes the values of a slice column from a structure using reflection.
+// It retrieves the string representation of each string element in the slice, up to a maximum of 5 elements,
+// concatenates them with commas, and returns the resulting string. If there are more than 5 elements,
+// the string is truncated and appended with "...".
 func getValueOfSlice(responseValue reflect.Value, column string) (responseStr string) {
+	// Get the length of the slice column
 	instanceLen := responseValue.FieldByName(column).Len()
+
+	// Initialize a slice to store string representations of each element
 	var result []string
+
+	// Iterate through each element in the slice
 	for i := 0; i < instanceLen; i++ {
+		// Get the i-th element from the slice
 		item := responseValue.FieldByName(column).Index(i)
+
+		// Check if the element is of kind string, skip if not
 		if item.Kind() != reflect.String {
 			continue
 		}
+
+		// Append the string representation of the element to the result slice
 		result = append(result, item.String())
 	}
+
+	// If there are more than 5 elements, truncate the result and append "..."
 	if len(result) > 5 {
 		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:5], ","))
 	} else {
+		// If there are 5 or fewer elements, concatenate them with commas
 		responseStr = strings.Join(result, ",")
 	}
+
+	// Return the resulting string representation of the slice column
 	return responseStr
 }
 
-// getValueOfSliceByStruct gets value when the column type is slice.
+// getValueOfSliceByStruct extracts and processes unique values of a slice of structures based on the specified column names.
+// It uses reflection to navigate the nested structures and retrieves the values of the specified columns for each structure.
+// The unique values are then sorted and concatenated with commas, and if there are more than 5 unique values, the result
+// is truncated and appended with "...".
 func getValueOfSliceByStruct(responseValue reflect.Value, column []string) (responseStr string) {
+	// Get the length of the slice
 	instanceLen := responseValue.Len()
+
+	// Initialize a slice to store unique string representations of specified columns
 	var result []string
+
+	// Use a map to track unique values to avoid duplicates
 	var duplicateValue = make(map[string]struct{})
+
+	// Iterate through each element in the slice
 	for i := 0; i < instanceLen; i++ {
+		// Get the i-th element from the slice
 		item := responseValue.Index(i)
+
+		// Check if the element is of kind struct
 		if item.Kind() == reflect.Struct {
+			// Get the value of the specified column for the current structure
 			columnValue := getValueByColumnName(item, column)
+
+			// Store the unique column values in the map
 			duplicateValue[columnValue] = struct{}{}
 		}
 	}
 
+	// Iterate through unique values and append them to the result slice
 	for idx := range duplicateValue {
 		result = append(result, idx)
 	}
+
+	// Sort the result to maintain order
 	sort.Strings(result)
+
+	// If there are more than 5 unique values, truncate the result and append "..."
 	if len(result) > 5 {
 		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:5], ","))
 	} else {
+		// If there are 5 or fewer unique values, concatenate them with commas
 		responseStr = strings.Join(result, ",")
 	}
+
+	// Return the resulting string representation of the unique values in the slice of structures
 	return responseStr
 }
 
-// getValueOfStruct gets value when the column type is slice.
+// getValueOfStruct extracts and processes the values of a specified column within a struct using reflection.
+// It iterates through the fields of the specified column, optionally considering a subfield, and retrieves
+// the string representation of each field. The unique values are then sorted and concatenated with commas,
+// and if there are more than 5 unique values, the result is truncated and appended with "...".
+// The final result includes the count of unique values within square brackets.
 func getValueOfStruct(responseValue reflect.Value, column, subFieldName string) (responseStr string) {
+	// Get the value of the specified column within the struct
 	value := responseValue.FieldByName(column)
+
+	// Initialize a slice to store unique string representations of field values
 	var result []string
+
+	// Iterate through each field in the specified column
 	for i := 0; i < value.NumField(); i++ {
+		// Get the i-th field
 		field := value.Field(i)
+
+		// Get the name of the field (considering subfields)
 		name := getValueByColumnKind(field.Elem(), subFieldName, subFieldName)
+
+		// If the name is not empty, append it to the result slice
 		if name != "" {
 			result = append(result, name)
 		}
 	}
+
+	// Sort the result to maintain order
 	sort.Strings(result)
+
+	// If there are more than 5 unique values, truncate the result and append "..."
 	if len(result) > 5 {
 		responseStr = fmt.Sprintf("%s...", strings.Join(result[0:5], ","))
 	} else {
+		// If there are 5 or fewer unique values, concatenate them with commas
 		responseStr = strings.Join(result, ",")
 	}
+
+	// Format the final response string to include the count of unique values within square brackets
 	responseStr = fmt.Sprintf("[%d] %s", len(result), responseStr)
+
+	// Return the resulting string representation of the values within the struct
 	return responseStr
 }
 

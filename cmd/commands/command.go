@@ -51,42 +51,60 @@ func Fatal(exitcode int, args ...interface{}) {
 	log.Fatal(args...)
 }
 
-// NewResourceCommand returns a new instance of an `nautes xxx get` command
+// NewResourceCommand creates and returns a set of Cobra commands for a resource type based on reflection and provided options.
+// It takes client options, resource type, response item type, and a subCommandFunc responsible for creating subcommands.
+// The generated commands include those for the resource itself, its plural form, and any short commands specified in tags.
+// The subCommandFunc is called to create subcommands for each of these names.
 func NewResourceCommand(clientOptions *types.ClientOptions, resourceType reflect.Type, responseItemType reflect.Type,
 	subCommandFunc func(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string,
 		resourceType, responseItemType reflect.Type) *cobra.Command) (ccCommands []*cobra.Command) {
+	// Instantiate a ResourceHandler of the specified type
 	resourceHandler := reflect.New(resourceType).Interface().(types.ResourceHandler)
-	//get short commands from tags
+
+	// Get short commands from tags
 	var shortCommands []string
 	if field, ok := resourceType.FieldByName(types.ResourceKind); ok {
 		tag := field.Tag
 		shortCommands = strings.Split(tag.Get("commands"), ",")
 	}
 
-	//set kind value
+	// Set the 'kind' value in the ResourceHandler
 	resourcePtr := reflect.ValueOf(resourceHandler).Elem()
 	rType := reflect.TypeOf(resourceHandler).String()
 	resourcePtr.FieldByName(types.ResourceKind).SetString(strings.TrimPrefix(rType, "*types."))
 
+	// Generate resource name and related command names
 	var resourceName = strings.ToLower(resourceHandler.GetKind())
 	var allCmds []string
 	allCmds = append(allCmds, resourceName, fmt.Sprintf("%ss", resourceName))
 	allCmds = append(allCmds, shortCommands...)
+
+	// Create commands using the subCommandFunc for each name
 	for _, cmd := range allCmds {
 		command := subCommandFunc(clientOptions, resourceHandler, cmd, resourceType, responseItemType)
 		ccCommands = append(ccCommands, command)
 	}
-	return
+
+	// Return the generated Cobra commands
+	return ccCommands
 }
 
+// SubGetCommand creates a Cobra command for the "get" subcommand of a resource.
+// It retrieves information about a specific resource or a list of resources based on the provided arguments.
+// The command supports various output formats such as json, yaml, or a wide table format.
+// The "product" flag allows filtering resources by product name.
 func SubGetCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, _, responseItemType reflect.Type) *cobra.Command {
 	var (
 		output  string
 		product string
 	)
+
+	// Reflect on the resource handler and initialize some variables
 	resourceValue := reflect.ValueOf(resourceHandler).Elem()
 	resourceKind := resourceHandler.GetKind()
 	var resourceNameUpper = strings.ToUpper(resourceKind)
+
+	// Create the "get" command
 	var command = &cobra.Command{
 		Use:   fmt.Sprintf("%s name", resourceName),
 		Short: fmt.Sprintf("Get %s information", resourceNameUpper),
@@ -96,6 +114,8 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 
 		Run: func(c *cobra.Command, args []string) {
 			var responseValue reflect.Value
+
+			// Process the "product" flag to filter resources by product name
 			if product != "" {
 				if resourceKind != IgnoreProductOfCluster && resourceKind != IgnoreProductOfProduct {
 					if resourceKind == CodeRepoBinding {
@@ -105,11 +125,14 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 					}
 				}
 			}
+
 			var outputFlag bool
 			resourceResponseList := make([]interface{}, 0)
 			resourceResponseListValue := make([]reflect.Value, 0)
+
 			if len(args) == 0 {
-				//dynamic create struct
+				// Retrieve a list of resources
+				// Dynamic creation of a struct for storing resource items
 				sliceType := reflect.SliceOf(responseItemType)
 				sliceValue := reflect.MakeSlice(sliceType, 5, 10)
 				slice := sliceValue.Interface()
@@ -122,6 +145,7 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 				customStructType := reflect.StructOf(fields)
 				responseValue = reflect.New(customStructType)
 
+				// Build and retrieve resources from the server
 				resBytes, err := buildResourceAndDo(MethodGet, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
 				if err != nil {
 					CheckError(err)
@@ -130,6 +154,8 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 				if err != nil {
 					CheckError(err)
 				}
+
+				// Extract individual resource items from the response
 				instance := responseValue.Elem().FieldByName("Items")
 				instanceLen := instance.Len()
 				for i := 0; i < instanceLen; i++ {
@@ -138,6 +164,7 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 					resourceResponseListValue = append(resourceResponseListValue, item)
 				}
 			} else {
+				// Retrieve specific resources by name
 				for _, argsSelector := range args {
 					resourceValue.FieldByName("Spec").FieldByName("Name").SetString(argsSelector)
 					resBytes, err := buildResourceAndDo(MethodGet, clientOptions.ServerAddr, clientOptions.Token, clientOptions.SkipCheck, resourceHandler)
@@ -157,6 +184,7 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 				}
 			}
 
+			// Output formatting based on the specified format
 			switch output {
 			case OutputYaml, OutputJson:
 				err := PrintResourceResponseList(resourceResponseList, output, outputFlag)
@@ -171,7 +199,8 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 			}
 		},
 	}
-	// we have wide as default to not break backwards-compatibility
+
+	// Add flags to the command
 	command.Flags().StringVarP(&output, "output", "o", "wide", "Output format. One of: json|yaml|wide")
 	if resourceKind != IgnoreProductOfCluster && resourceKind != IgnoreProductOfProduct {
 		command.Flags().StringVarP(&product, "product", "p", "", "List resource by product name")
@@ -180,6 +209,7 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 			CheckError(err)
 		}
 
+		// Set the "product" flag from the environment variable if present
 		if os.Getenv("PRODUCT") != "" {
 			err = command.Flags().Set("product", os.Getenv("PRODUCT"))
 			if err != nil {
@@ -187,10 +217,14 @@ nautes get %s name-101 name-102`, resourceName, resourceName),
 			}
 		}
 	}
+
 	return command
 }
 
-// SubDeleteCommand returns a new instance of an `nautes xxx rm` command
+// SubDeleteCommand creates a Cobra command for the "delete" subcommand of a resource.
+// It removes one or more resources based on the provided arguments and options.
+// The command supports confirmation prompts and the option to bypass prompts using the "--yes" flag.
+// The "product" flag allows filtering resources by product name.
 func SubDeleteCommand(clientOptions *types.ClientOptions, resourceHandler types.ResourceHandler, resourceName string, _, _ reflect.Type) *cobra.Command {
 	var noPrompt bool
 	var product string
