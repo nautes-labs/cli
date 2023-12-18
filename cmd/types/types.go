@@ -442,10 +442,36 @@ type ProjectPipelineRuntimeResponseItemEventSourcesCalendar struct {
 	Timezone       string   `yaml:"timezone" json:"timezone"`
 }
 
+// UserPipelineInputSource defines the source of the user pipeline input.
+type UserPipelineInputSource struct {
+	// BuiltInVar defines how to get the data associated with the pipeline runtime.
+	BuiltInVar *string `yaml:"builtInVar" json:"builtInVar,omitempty"`
+	// FromEvent defines how to get data from the data source.
+	FromEvent *string `yaml:"fromEvent" json:"fromEvent,omitempty"`
+}
+
+// TransmissionMethod defines the method for transmitting variables to the user pipeline.
+type TransmissionMethod struct {
+	// Kustomization defines how users can pass data to the pipeline file through the kustomize.
+	Kustomization *TransmissionMethodKustomization `yaml:"kustomization" json:"kustomization,omitempty"`
+}
+
+type TransmissionMethodKustomization struct {
+	// Path is the path to be replaced in the pipeline file.
+	Path string `yaml:"path" json:"path"`
+}
+
+type UserPipelineInput struct {
+	Source UserPipelineInputSource `yaml:"source" json:"source"`
+	// TransmissionMethod is the method passed to the user pipeline.
+	TransmissionMethod TransmissionMethod `yaml:"transmissionMethod" json:"transmissionMethod"`
+}
+
 type ProjectPipelineRuntimeResponseItemPipelineTriggers []struct {
-	EventSource string `yaml:"eventSource" json:"event_source" column:"EventSource" mergeTo:"RepoName"`
-	Pipeline    string `yaml:"pipeline" json:"pipeline"`
-	Revision    string `yaml:"revision" json:"revision"`
+	EventSource string              `yaml:"eventSource" json:"event_source" column:"EventSource" mergeTo:"RepoName"`
+	Pipeline    string              `yaml:"pipeline" json:"pipeline"`
+	Revision    string              `yaml:"revision" json:"revision"`
+	Inputs      []UserPipelineInput `yaml:"inputs" json:"inputs,omitempty"`
 }
 
 func (p *ProjectPipelineRuntime) GetKind() string {
