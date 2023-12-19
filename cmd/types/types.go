@@ -464,7 +464,7 @@ type TransmissionMethodKustomization struct {
 type UserPipelineInput struct {
 	Source UserPipelineInputSource `yaml:"source" json:"source"`
 	// TransmissionMethod is the method passed to the user pipeline.
-	TransmissionMethod TransmissionMethod `yaml:"transmissionMethod" json:"transmissionMethod"`
+	TransmissionMethod TransmissionMethod `yaml:"transmissionMethod" json:"transmission_method"`
 }
 
 type ProjectPipelineRuntimeResponseItemPipelineTriggers []struct {
