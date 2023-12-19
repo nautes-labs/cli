@@ -445,9 +445,9 @@ type ProjectPipelineRuntimeResponseItemEventSourcesCalendar struct {
 // UserPipelineInputSource defines the source of the user pipeline input.
 type UserPipelineInputSource struct {
 	// BuiltInVar defines how to get the data associated with the pipeline runtime.
-	BuiltInVar *string `yaml:"builtInVar" json:"builtInVar,omitempty"`
+	BuiltInVar *string `yaml:"builtInVar" json:"built_in_var,omitempty"`
 	// FromEvent defines how to get data from the data source.
-	FromEvent *string `yaml:"fromEvent" json:"fromEvent,omitempty"`
+	FromEvent *string `yaml:"fromEvent" json:"from_event,omitempty"`
 }
 
 // TransmissionMethod defines the method for transmitting variables to the user pipeline.
