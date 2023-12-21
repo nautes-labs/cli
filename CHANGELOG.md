@@ -1,5 +1,21 @@
 # Change Log
 
+## v0.4.2
+
+> Change log since v0.4.1
+
+### New Feature
+
+1. Support adding hooks before and after the user pipeline.
+
+2. Support transfer of specified variables to user pipelines.
+
+### How to use
+
+```shell
+nautes get ppr -p $PRODUCT-NAME -t $TOKEN -s $API-SERVER
+```
+
 ## v0.4.1
 
 > Change log since v0.4.0

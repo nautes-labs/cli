@@ -27,6 +27,8 @@ const DeploymentRuntimePathTemplate = "/api/v1/products/%s/deploymentruntimes/%s
 const ProjectPipelineRuntimePathTemplate = "/api/v1/products/%s/projectpipelineruntimes/%s"
 const ClusterPathTemplate = "/api/v1/clusters/%s"
 
+//const ArtifactRepoPathTemplate = "/api/v1/products/%s/artifactrepos/%s"
+
 const (
 	ResourceKind = "Kind"
 	ApplyOrder   = "applyOrder"
@@ -43,10 +45,46 @@ type ResourcesType struct {
 }
 
 type ResourceHandler interface {
+	// GetKind gets the kind of the resource.
 	GetKind() string
+	// GetPathTemplate gets the path to the request api-server.
 	GetPathTemplate() string
+	// GetPathVarNames gets the parameters in the request path.
 	GetPathVarNames() []string
 }
+
+/**
+type ArtifactRepo struct {
+	APIVersion string                   `yaml:"apiVersion" json:"api_version"`
+	Kind       string                   `yaml:"kind" json:"kind" commands:"ar,ars" applyOrder:"8" removeOrder:"8"`
+	Spec       ArtifactRepoResponseItem `yaml:"spec" json:"spec"`
+}
+
+type ArtifactRepoResponse struct {
+	Items []*ArtifactRepoResponseItem `yaml:"items" json:"items"`
+}
+
+type ArtifactRepoResponseItem struct {
+	ArtifactRepoProvider string   `json:"artifact_repo_provider" yaml:"artifactRepoProvider"`
+	Product              string   `json:"product" yaml:"product"  column:"product"`
+	Projects             []string `json:"projects" yaml:"projects"`
+	RepoName             string   `json:"repo_name" yaml:"repoName" column:"repoName"`
+	RepoType             string   `json:"repo_type" yaml:"repoType"  column:"repoType" mergeTo:"repoName"`
+	PackageType          string   `json:"package_type" yaml:"packageType"`
+}
+
+func (ar *ArtifactRepo) GetKind() string {
+	return ar.Kind
+}
+
+func (ar *ArtifactRepo) GetPathTemplate() string {
+	return ArtifactRepoPathTemplate
+}
+
+func (ar *ArtifactRepo) GetPathVarNames() []string {
+	return []string{"Product", "Name"}
+}
+**/
 
 type Base struct {
 	APIVersion string `yaml:"apiVersion" json:"api_version"`
@@ -55,7 +93,7 @@ type Base struct {
 
 type Cluster struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"cls" applyOrder:"0" removeOrder:"7"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"cls" applyOrder:"0" removeOrder:"0"`
 	Spec       ClusterResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -129,7 +167,7 @@ func (c *Cluster) GetPathVarNames() []string {
 
 type Product struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"prod,prods" applyOrder:"1" removeOrder:"6"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"prod,prods" applyOrder:"1" removeOrder:"1"`
 	Spec       ProductResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -168,7 +206,7 @@ func (p *Product) GetPathVarNames() []string {
 
 type Environment struct {
 	APIVersion string                  `yaml:"apiVersion" json:"api_version"`
-	Kind       string                  `yaml:"kind" json:"kind" commands:"env,envs" applyOrder:"2" removeOrder:"5"`
+	Kind       string                  `yaml:"kind" json:"kind" commands:"env,envs" applyOrder:"2" removeOrder:"2"`
 	Spec       EnvironmentResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -197,7 +235,7 @@ func (e *Environment) GetPathVarNames() []string {
 
 type Project struct {
 	APIVersion string              `yaml:"apiVersion" json:"api_version"`
-	Kind       string              `yaml:"kind" json:"kind" commands:"pro,proj,pros" applyOrder:"3" removeOrder:"4"`
+	Kind       string              `yaml:"kind" json:"kind" commands:"pro,proj,pros" applyOrder:"3" removeOrder:"3"`
 	Spec       ProjectResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -225,7 +263,7 @@ func (p *Project) GetPathVarNames() []string {
 
 type CodeRepo struct {
 	APIVersion string               `yaml:"apiVersion" json:"api_version"`
-	Kind       string               `yaml:"kind" json:"kind" commands:"cr,crs" applyOrder:"4" removeOrder:"3"`
+	Kind       string               `yaml:"kind" json:"kind" commands:"cr,crs" applyOrder:"4" removeOrder:"4"`
 	Spec       CodeRepoResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -274,7 +312,7 @@ func (c *CodeRepo) GetPathVarNames() []string {
 
 type CodeRepoBinding struct {
 	APIVersion string                      `yaml:"apiVersion" json:"api_version"`
-	Kind       string                      `yaml:"kind" json:"kind" commands:"crb,crbs" applyOrder:"5" removeOrder:"2"`
+	Kind       string                      `yaml:"kind" json:"kind" commands:"crb,crbs" applyOrder:"5" removeOrder:"5"`
 	Spec       CodeRepoBindingResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -305,7 +343,7 @@ func (c *CodeRepoBinding) GetPathVarNames() []string {
 
 type ProjectPipelineRuntime struct {
 	APIVersion string                             `yaml:"apiVersion" json:"api_version"`
-	Kind       string                             `yaml:"kind" json:"kind" commands:"ppr,pprs" applyOrder:"6" removeOrder:"1"`
+	Kind       string                             `yaml:"kind" json:"kind" commands:"ppr,pprs" applyOrder:"6" removeOrder:"6"`
 	Spec       ProjectPipelineRuntimeResponseItem `yaml:"spec" json:"spec"`
 }
 
@@ -349,11 +387,40 @@ type ProjectPipelineRuntimeResponseItem struct {
 	Isolation   string                                   `yaml:"isolation" json:"isolation"`
 	Pipelines   *[]ProjectPipelineRuntimeCommonPipelines `yaml:"pipelines" json:"pipelines"`
 	// Optional
-	Product             string                                              `yaml:"product" json:"product"`
-	PipelineSource      string                                              `yaml:"pipelineSource" json:"pipeline_source" column:"PipelineSource"`
-	EventSources        *[]ProjectPipelineRuntimeResponseItemEventSources   `yaml:"eventSources" json:"event_sources"`
-	PipelineTriggers    *ProjectPipelineRuntimeResponseItemPipelineTriggers `yaml:"pipelineTriggers" json:"pipeline_triggers"`
-	AdditionalResources ProjectPipelineRuntimeAdditionalResources           `yaml:"additionalResources" json:"additional_resources"`
+	Product          string                                              `yaml:"product" json:"product"`
+	PipelineSource   string                                              `yaml:"pipelineSource" json:"pipeline_source" column:"PipelineSource"`
+	EventSources     *[]ProjectPipelineRuntimeResponseItemEventSources   `yaml:"eventSources" json:"event_sources"`
+	PipelineTriggers *ProjectPipelineRuntimeResponseItemPipelineTriggers `yaml:"pipelineTriggers" json:"pipeline_triggers"`
+	// +optional
+	AdditionalResources *ProjectPipelineRuntimeAdditionalResources `yaml:"additionalResources" json:"additional_resources"`
+	// +optional
+	// Hooks are hooks that users need to add before or after the user pipeline.
+	Hooks *Hooks `yaml:"hooks" json:"hooks,omitempty"`
+}
+
+// Hooks are hooks will to add before or after the user pipeline.
+type Hooks struct {
+	// +optional
+	// PreHooks is a set of hooks to be executed before running the user pipeline.
+	PreHooks []Hook `yaml:"preHooks" json:"pre_hooks,omitempty"`
+	// +optional
+	// PostHooks is a set of hooks that will run after the user pipeline starts executing.
+	PostHooks []Hook `yaml:"postHooks" json:"post_hooks,omitempty"`
+}
+
+// Hook is a record of information about a runnable hook.
+type Hook struct {
+	// Name is the name of the hook to be executed.
+	Name string `yaml:"name" json:"name"`
+	// Alias is the alias given by the user for the hook.
+	// If the user does not enter this value, the name of the hook will be obtained from 'name'.
+	// When the hook appears in both PreHooks and PostHooks, it is necessary to specify the name to prevent conflicts.
+	// +optional
+	Alias *string `yaml:"alias" json:"alias,omitempty"`
+	// Vars is the parameter that the user wants to pass to the hook,
+	// and the input items are determined based on the pipeline component in cluster.
+	// +optional
+	Vars map[string]string `yaml:"vars" json:"vars,omitempty"`
 }
 
 type ProjectPipelineRuntimeResponseItemEventSources struct {
@@ -375,10 +442,36 @@ type ProjectPipelineRuntimeResponseItemEventSourcesCalendar struct {
 	Timezone       string   `yaml:"timezone" json:"timezone"`
 }
 
+// UserPipelineInputSource defines the source of the user pipeline input.
+type UserPipelineInputSource struct {
+	// BuiltInVar defines how to get the data associated with the pipeline runtime.
+	BuiltInVar *string `yaml:"builtInVar" json:"built_in_var,omitempty"`
+	// FromEvent defines how to get data from the data source.
+	FromEvent *string `yaml:"fromEvent" json:"from_event,omitempty"`
+}
+
+// TransmissionMethod defines the method for transmitting variables to the user pipeline.
+type TransmissionMethod struct {
+	// Kustomization defines how users can pass data to the pipeline file through the kustomize.
+	Kustomization *TransmissionMethodKustomization `yaml:"kustomization" json:"kustomization,omitempty"`
+}
+
+type TransmissionMethodKustomization struct {
+	// Path is the path to be replaced in the pipeline file.
+	Path string `yaml:"path" json:"path"`
+}
+
+type UserPipelineInput struct {
+	Source UserPipelineInputSource `yaml:"source" json:"source"`
+	// TransmissionMethod is the method passed to the user pipeline.
+	TransmissionMethod TransmissionMethod `yaml:"transmissionMethod" json:"transmission_method"`
+}
+
 type ProjectPipelineRuntimeResponseItemPipelineTriggers []struct {
-	EventSource string `yaml:"eventSource" json:"event_source" column:"EventSource" mergeTo:"RepoName"`
-	Pipeline    string `yaml:"pipeline" json:"pipeline"`
-	Revision    string `yaml:"revision" json:"revision"`
+	EventSource string              `yaml:"eventSource" json:"event_source" column:"EventSource" mergeTo:"RepoName"`
+	Pipeline    string              `yaml:"pipeline" json:"pipeline"`
+	Revision    string              `yaml:"revision" json:"revision"`
+	Inputs      []UserPipelineInput `yaml:"inputs" json:"inputs,omitempty"`
 }
 
 func (p *ProjectPipelineRuntime) GetKind() string {
@@ -395,7 +488,7 @@ func (p *ProjectPipelineRuntime) GetPathVarNames() []string {
 
 type DeploymentRuntime struct {
 	APIVersion string                        `yaml:"apiVersion" json:"api_version"`
-	Kind       string                        `yaml:"kind" json:"kind" commands:"dr,drs" applyOrder:"7" removeOrder:"0"`
+	Kind       string                        `yaml:"kind" json:"kind" commands:"dr,drs" applyOrder:"7" removeOrder:"7"`
 	Spec       DeploymentRuntimeResponseItem `yaml:"spec" json:"spec"`
 }
 
