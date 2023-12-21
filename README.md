@@ -120,11 +120,11 @@ const ArtifactRepoPathTemplate = "/api/v1/products/%s/artifactrepos/%s"
 
 ### 设置扩展标签
 
-在 Nautes 的资源中，Cluster 和 Product 属于一等公民，而 Project, Environment, CodeRepo, CodeRepoBinding, ProjectPipelineRuntime, DeploymentRuntime 属于二等公民。
+在 Nautes 的资源中，Cluster 和 Product 属于一级资源，而 Project, Environment, CodeRepo, CodeRepoBinding, ProjectPipelineRuntime, DeploymentRuntime 属于二级资源。
 
-> 二等公民需要依赖一等公民的创建，比如：创建 Project 时需要先创建 Product； 
+> 二级资源需要依赖一级资源的创建，比如：创建 Project 时需要先创建 Product； 
 
-> 二等公民之间也有依赖关系，比如 创建 CodeRepo 时需要依赖 Project，创建 DeploymentRuntime 时需要依赖 Project, Environment, CodeRepo。
+> 二级资源之间也有依赖关系，比如 创建 CodeRepo 时需要依赖 Project，创建 DeploymentRuntime 时需要依赖 Project, Environment, CodeRepo。
 
 当在一个 yaml 文件中定义了所有资源且无序时，cli 客户端在执行的时候会按照内部自动排序，在添加资源时按升序添加，而在删除资源时按降序删除，避免因资源的依赖关系产生错误。
 
