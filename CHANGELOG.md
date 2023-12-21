@@ -5,29 +5,15 @@
 > Change log since v0.4.1
 
 ### New Feature
-1. Added the hooks attribute of the ProjectPipelineRuntime resource.
-   Added two hooks to the user's pipeline, preHooks for execution before the pipeline runs and postHooks for execution after the pipeline runs.
-   Parameters can be passed to customized variables required by the hook operation.
-   For example, preHooks notify before the execution pipeline starts and postHooks notify after the execution pipeline completes.
-```yaml
-type ProjectPipelineRuntime struct {
-    APIVersion string 
-    Kind       string
-    Spec    struct {
-        Hooks *Hooks
-    }
-}
-   
-type Hooks struct {
-   PreHooks []Hook
-   PostHooks []Hook
-}
 
-type Hook struct {
-   Name string
-   Alias *string
-   Vars map[string]string
-}
+1. Support adding hooks before and after the user pipeline.
+
+2. Support transfer of specified variables to user pipelines.
+
+### How to use
+
+```shell
+nautes get ppr -p $PRODUCT-NAME -t $TOKEN -s $API-SERVER
 ```
 
 ## v0.4.1
